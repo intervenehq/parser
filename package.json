@@ -3,6 +3,7 @@
   "module": "src/index.ts",
   "type": "module",
   "devDependencies": {
+    "@types/lodash": "^4.14.199",
     "bun-types": "latest",
     "type-fest": "^4.3.3"
   },
@@ -11,6 +12,8 @@
   },
   "dependencies": {
     "chromadb": "^1.5.11",
+    "lodash": "^4.17.21",
+    "openai": "^4.11.1",
     "vectra": "^0.4.4"
   }
 }

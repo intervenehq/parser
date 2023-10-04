@@ -5,9 +5,7 @@ import BaseVectorStoreClient, {
 } from "src/embeddings/vector-store/base";
 import VectraClient from "src/embeddings/vector-store/vectra";
 
-export default class VectorStoreClient extends BaseVectorStoreClient<
-  BaseVectorStoreClient<any>
-> {
+class VectorStore extends BaseVectorStoreClient<BaseVectorStoreClient<any>> {
   client: BaseVectorStoreClient<any, any>;
 
   constructor() {
@@ -24,15 +22,19 @@ export default class VectorStoreClient extends BaseVectorStoreClient<
     return this.client.connect();
   }
 
-  findOrCreateCollection(...params: Parameters<FindOrCreateCollection>) {
+  findOrCreateCollection: FindOrCreateCollection = (...params) => {
     return this.client.findOrCreateCollection(...params);
-  }
+  };
 
-  createItems(...params: Parameters<CreateItems>) {
+  createItems: CreateItems = (...params) => {
     return this.client.createItems(...params);
-  }
+  };
 
-  queryItems(...params: Parameters<QueryItems>) {
+  queryItems: QueryItems = (...params) => {
     return this.client.queryItems(...params);
-  }
+  };
 }
+
+const vectorStore = new VectorStore();
+
+export default vectorStore;

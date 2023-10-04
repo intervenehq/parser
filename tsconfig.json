@@ -20,7 +20,9 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "~/utils/*": ["src/utils/*"]
+      "~/utils/*": ["src/utils/*"],
+      "~/embeddings/*": ["src/embeddings/*"],
+      "~/agent/*": ["src/agent/*"],
     }
   }
 }

@@ -13,7 +13,7 @@ export type CreateItems<CollectionT = any, ItemT = any> = (
 export type QueryItems<CollectionT = any, ItemT = any> = (
   collection: VectorStoreCollection<CollectionT>,
   query: number[],
-  limit: number
+  limit?: number
 ) => Promise<VectorStoreItem<ItemT>[]>;
 
 export default abstract class BaseVectorStoreClient<
