@@ -3,9 +3,14 @@
   "module": "src/index.ts",
   "type": "module",
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "type-fest": "^4.3.3"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "chromadb": "^1.5.11",
+    "vectra": "^0.4.4"
   }
 }
