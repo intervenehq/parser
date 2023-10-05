@@ -49,8 +49,8 @@ const CONFIG_PATH = path.join(os.homedir(), ".interveneconfig");
 
 function saveConfig(openAIKey: string, vectorDbKey: string) {
   const config = {
-    openAIKey,
-    vectorDbKey,
+    OPENAI_KEY: openAIKey,
+    VECTORDB_KEY: vectorDbKey,
   };
   Bun.write(CONFIG_PATH, JSON.stringify(config, null, 2));
 }
