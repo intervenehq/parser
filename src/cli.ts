@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import prompts from "prompts";
+import path from "path";
+import os from "os";
 
 const program = new Command();
 
@@ -40,7 +42,17 @@ program
       `OpenAI API Key set to: ${apiKeyResponse.apiKey} and ${keyName} Key set to: ${dbKeyResponse.dbKey}`
     );
 
-    // You can save the keys as needed, perhaps in an environment file or elsewhere.
+    saveConfig(apiKeyResponse.apiKey, dbKeyResponse.dbKey);
   });
+
+const CONFIG_PATH = path.join(os.homedir(), ".interveneconfig");
+
+function saveConfig(openAIKey: string, vectorDbKey: string) {
+  const config = {
+    openAIKey,
+    vectorDbKey,
+  };
+  Bun.write(CONFIG_PATH, JSON.stringify(config, null, 2));
+}
 
 program.parse();
