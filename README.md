@@ -1,5 +1,9 @@
 # Intervene Parser
 
+<p align="center">
+  <img src="public/images/logo.jpeg" alt="Intervene Parser Logo">
+</p>
+
 ## Introduction
 
 LLMs can do wondrous things, but translating a natural language query into an actionable piece of code is difficult. Despite it generating code well, there's no validation layer that checks for the correctness of APIs, which we frequently refer to as "hallucination".
