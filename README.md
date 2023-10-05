@@ -1,7 +1,7 @@
 # Intervene Parser
 
 <p align="center">
-  <img src="public/images/logo.jpeg" alt="Intervene Parser Logo">
+  <img src="public/images/logo.jpeg" alt="Intervene Parser Logo" width="200" height="200">
 </p>
 
 ## Introduction
