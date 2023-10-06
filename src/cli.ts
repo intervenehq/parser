@@ -5,6 +5,38 @@ import os from "os";
 
 const program = new Command();
 
+const CONFIG_PATH = path.join(os.homedir(), ".interveneconfig");
+
+function saveConfig(openAIKey: string, dbKeyName: string, vectorDbKey: string) {
+  const config = {
+    OPENAI_KEY: openAIKey,
+    VECTORDB: {
+      NAME: dbKeyName,
+      KEY: vectorDbKey,
+    },
+  };
+
+  try {
+    Bun.write(CONFIG_PATH, JSON.stringify(config, null, 2));
+    console.log("Configuration saved successfully!");
+  } catch (error) {
+    console.error("Error saving the configuration:", error);
+  }
+}
+
+async function readConfig() {
+  const configFile = Bun.file(CONFIG_PATH);
+
+  if (await configFile.exists()) {
+    console.log("Configuration file found!");
+    return JSON.parse(JSON.stringify(await configFile.json()));
+  } else {
+    console.log("No configuration file found, creating one...");
+    await Bun.write(CONFIG_PATH, JSON.stringify({}));
+    return;
+  }
+}
+
 program
   .name("intervene-cli")
   .description("CLI for Intervene to parse natural language")
@@ -50,36 +82,11 @@ program
     saveConfig(apiKeyResponse.apiKey, keyName, dbKeyResponse.dbKey);
   });
 
-const CONFIG_PATH = path.join(os.homedir(), ".interveneconfig");
-
-function saveConfig(openAIKey: string, dbKeyName: string, vectorDbKey: string) {
-  const config = {
-    OPENAI_KEY: openAIKey,
-    VECTORDB: {
-      NAME: dbKeyName,
-      KEY: vectorDbKey,
-    },
-  };
-
-  try {
-    Bun.write(CONFIG_PATH, JSON.stringify(config, null, 2));
-    console.log("Configuration saved successfully!");
-  } catch (error) {
-    console.error("Error saving the configuration:", error);
-  }
-}
-
-async function readConfig() {
-  const configFile = Bun.file(CONFIG_PATH);
-
-  if (await configFile.exists()) {
-    console.log("Configuration file found!");
-    return JSON.parse(JSON.stringify(await configFile.json()));
-  } else {
-    console.log("No configuration file found, creating one...");
-    await Bun.write(CONFIG_PATH, JSON.stringify({}));
-    return;
-  }
-}
+program
+  .command("parse")
+  .description("Parse your natural language query")
+  .action(async () => {
+    console.log("Hello World!");
+  });
 
 program.parse();
