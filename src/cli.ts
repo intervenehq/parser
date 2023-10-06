@@ -85,8 +85,19 @@ program
 program
   .command("parse")
   .description("Parse your natural language query")
-  .action(async () => {
-    console.log("Hello World!");
-  });
+  .argument("<query>", "natural language query")
+  .option("-f, --files <files>", "comma-separated list of OpenAPI spec files")
+  .action(async (query, options) => {
+    if (options.files) {
+      const filePaths = options.files.split(",");
 
+      filePaths.forEach(async (filePath: string) => {
+        const absolutePath = path.resolve(filePath.trim());
+        const fileContent = await Bun.file(absolutePath).json();
+
+        console.log(`Loaded file: ${absolutePath}`);
+        console.log(`Here's the file content: ${JSON.stringify(fileContent)}`);
+      });
+    }
+  });
 program.parse();
