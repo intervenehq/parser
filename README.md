@@ -29,14 +29,14 @@ bun install
 
 To use the CLI, run commands using the following syntax:
 
-bun src/cli.ts "[command-name]"
+bun src/cli.ts [command-name]
 
 ### Configure Command
 
 This command allows you to set up the OpenAI API key and choose a vector database (either ChromaDB or Pinecone) along with its respective API key.
 
 ```bash
-bun src/cli.ts "configure"
+bun src/cli.ts configure
 ```
 
 Follow the prompts to input or update the keys.
@@ -46,7 +46,7 @@ Follow the prompts to input or update the keys.
 This command lets you parse a natural language query and load a set of OpenAPI specs for further use.
 
 ```bash
-bun src/cli.ts "parse" "[Your natural language query here]" -f "/path/to/file1.json,/path/to/file2.json"
+bun src/cli.ts parse "[Your natural language query here]" -f "/path/to/file1.json,/path/to/file2.json"
 ```
 
 The first argument is your natural language query.
@@ -55,5 +55,5 @@ Use the -f option followed by a comma-separated list of OpenAPI spec files' path
 For example:
 
 ```bash
-bun src/cli.ts "parse" "Fetch customer details from Stripe" -f "./specs/stripe.json"
+bun src/cli.ts parse "Fetch customer details from Stripe" -f "./specs/stripe.json"
 ```
