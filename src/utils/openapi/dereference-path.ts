@@ -108,5 +108,5 @@ export async function dereferencePath(
   const endpointData = data.paths[endpointPath] || {};
   flattenRefs(endpointData);
 
-  return data;
+  return data["paths"][endpointPath][httpMethod];
 }
