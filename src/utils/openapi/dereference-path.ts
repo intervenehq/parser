@@ -1,9 +1,9 @@
-const endpointPath = "/v1/files/{file}";
+// const endpointPath = "/v1/files/{file}";
 const inputFilePath = "../../demo/specs/test-stripe-openapi.json";
 const outputFilePath = "../../demo/specs/output.json";
 const finalOutputFilePath = "../../demo/specs/final-output.json";
 
-const data = await Bun.file(inputFilePath).json();
+let data: any = {};
 const outputFile = Bun.file(outputFilePath);
 const finalOutput = Bun.file(finalOutputFilePath);
 
@@ -97,7 +97,13 @@ function flattenRefs(d: any): any {
   return d;
 }
 
-async function main() {
+export async function dereferencePath(
+  jsonData: object,
+  httpMethod: string,
+  endpointPath: string
+) {
+  data = jsonData;
+
   const refsForPath = processEndpoint(endpointPath);
   removeCircularRefs(refsForPath);
 
@@ -112,6 +118,6 @@ async function main() {
   await Bun.write(finalOutput, JSON.stringify(data));
 
   console.log(`Final outputs with replaced refs: ${finalOutputFilePath}`);
-}
 
-await main();
+  return JSON.stringify(data);
+}
