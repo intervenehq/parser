@@ -1,11 +1,6 @@
-const endpointPath = "/v1/files/{file}";
-const inputFilePath = "../../demo/specs/test-stripe-openapi.json";
-const outputFilePath = "../../demo/specs/output.json";
-const finalOutputFilePath = "../../demo/specs/final-output.json";
+// const endpointPath = "/v1/files/{file}";
 
-const data = await Bun.file(inputFilePath).json();
-const outputFile = Bun.file(outputFilePath);
-const finalOutput = Bun.file(finalOutputFilePath);
+let data: any = {};
 
 function findAllRefs(obj: any, refs: string[] = []): string[] {
   if (typeof obj === "object" && obj !== null) {
@@ -97,11 +92,15 @@ function flattenRefs(d: any): any {
   return d;
 }
 
-async function main() {
+export async function dereferencePath(
+  jsonData: any,
+  httpMethod: string,
+  endpointPath: string
+) {
+  data = jsonData;
+
   const refsForPath = processEndpoint(endpointPath);
   removeCircularRefs(refsForPath);
-
-  await Bun.write(outputFile, JSON.stringify(data));
 
   substituteRefsInPath(endpointPath);
   delete data.components;
@@ -109,9 +108,5 @@ async function main() {
   const endpointData = data.paths[endpointPath] || {};
   flattenRefs(endpointData);
 
-  await Bun.write(finalOutput, JSON.stringify(data));
-
-  console.log(`Final outputs with replaced refs: ${finalOutputFilePath}`);
+  return data["paths"][endpointPath][httpMethod];
 }
-
-await main();
