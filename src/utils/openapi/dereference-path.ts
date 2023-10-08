@@ -1,5 +1,3 @@
-// const endpointPath = "/v1/files/{file}";
-
 let data: any = {};
 
 function findAllRefs(obj: any, refs: string[] = []): string[] {
@@ -59,9 +57,13 @@ function getComponentByRef(ref: string): [any, string] {
 }
 
 function replaceRef(obj: any): void {
-  if (typeof obj === "object" && obj !== null) {
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      replaceRef(item);
+    }
+  } else if (typeof obj === "object" && obj !== null) {
     for (const [key, value] of Object.entries(obj)) {
-      if (key === "$ref") {
+      if (key === "$ref" && typeof value === "string") {
         const [component] = getComponentByRef(value as string);
         if (component) {
           obj[key] = component;
