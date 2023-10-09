@@ -1,7 +1,7 @@
 import SwaggerParser from "@apidevtools/swagger-parser";
 import { compact, intersection } from "lodash";
 import { encode } from "gpt-3-encoder";
-import { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
+import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
 import vectorStore from "src/embeddings/vector-store";
 import VectorStoreItem, { IVectorStoreItem } from "~/embeddings/Item";
 import { createEmbeddings } from "~/embeddings/index";
@@ -22,7 +22,7 @@ export default class ExternalResourcesDirectory {
   embed = async (openapi: any) => {
     console.log("embed called with openapi");
 
-    const api = await SwaggerParser.parse(openapi);
+    const api: OpenAPI.Document = await SwaggerParser.parse(openapi);
 
     const mappings = new Map<string, Set<string>>();
     const collection = await vectorStore.findOrCreateCollection("openapi");
@@ -35,7 +35,11 @@ export default class ExternalResourcesDirectory {
         const fullPath = [api.info.title, path, httpMethod].join("#");
 
         const operationObject = $deref(
-          dereferencePath(api, httpMethod, path) as
+          dereferencePath(
+            api as OpenAPIV3.Document,
+            httpMethod as keyof OpenAPIV3.PathItemObject,
+            path
+          ) as
             | OpenAPIV2.OperationObject
             | OpenAPIV3.OperationObject
             | OpenAPIV3_1.OperationObject

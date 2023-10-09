@@ -174,3 +174,5 @@ dist
 .tmp
 
 .DS_Store
+
+src/playground
