@@ -94,7 +94,7 @@ function flattenRefs(d: any): any {
   return d;
 }
 
-export async function dereferencePath(
+export function dereferencePath(
   jsonData: any,
   httpMethod: string,
   endpointPath: string

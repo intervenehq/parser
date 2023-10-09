@@ -38,24 +38,24 @@ export default class ChromaDBClient extends BaseVectorStoreClient<
       metadatas: items.map((item) => item.metadata),
     });
 
-    return items.map((item) => {
-      return new VectorStoreItem({
-        id: item.id,
-        metadata: item.metadata,
-        embeddings: item.embeddings,
-      });
-    });
+    if (chromaItems.error) {
+      throw new Error(chromaItems.error);
+    }
+
+    return;
   };
 
   queryItems: QueryItems<Collection> = async (
     collection,
     query,
+    where,
     limit = 10
   ) => {
     const result = await collection.object.query({
       queryEmbeddings: query,
       nResults: limit,
-      include: ["embeddings", "metadatas"] as any,
+      include: ["embeddings", "metadatas", "distances"] as any,
+      where,
     });
 
     return result.ids[0].map((_, index) => {
@@ -63,6 +63,7 @@ export default class ChromaDBClient extends BaseVectorStoreClient<
         id: result.ids[0][index]!,
         embeddings: result.embeddings![0][index]!,
         metadata: result.metadatas![0][index]!,
+        distance: result.distances![0][index]!,
       });
     });
   };
