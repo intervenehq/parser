@@ -9,7 +9,9 @@ export const openaiEmbeddingFunction: EmbeddingFunction = async (input) => {
     model: process.env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-ada-002",
   });
 
-  return response.data
-    .sort((a, b) => a.index - b.index)
-    .map((item) => item.embedding);
+  return Object.fromEntries(
+    response.data
+      .sort((a, b) => a.index - b.index)
+      .map((item) => [input[item.index], item.embedding])
+  );
 };

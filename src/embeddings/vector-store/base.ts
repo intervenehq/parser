@@ -1,18 +1,23 @@
-import VectorStoreItem, { IVectorStoreItem } from "src/embeddings/Item";
+import VectorStoreItem, {
+  IVectorStoreItem,
+  ItemMetadata,
+} from "src/embeddings/Item";
 import VectorStoreCollection from "../Collection";
+import { Collection } from "chromadb";
 
 export type FindOrCreateCollection<CollectionT = any> = (
   name: string
 ) => Promise<VectorStoreCollection<CollectionT>>;
 
-export type CreateItems<CollectionT = any, ItemT = any> = (
+export type CreateItems<CollectionT = any> = (
   collection: VectorStoreCollection<CollectionT>,
   items: IVectorStoreItem[]
-) => Promise<VectorStoreItem<ItemT>[]>;
+) => Promise<void>;
 
 export type QueryItems<CollectionT = any, ItemT = any> = (
   collection: VectorStoreCollection<CollectionT>,
   query: number[],
+  where?: Parameters<Collection["query"]>[0]["where"],
   limit?: number
 ) => Promise<VectorStoreItem<ItemT>[]>;
 
@@ -27,13 +32,13 @@ export default abstract class BaseVectorStoreClient<
 
   abstract findOrCreateCollection(
     ...params: Parameters<FindOrCreateCollection<CollectionT>>
-  ): Promise<VectorStoreCollection<CollectionT>>;
+  ): ReturnType<FindOrCreateCollection<CollectionT>>;
 
   abstract createItems(
-    ...params: Parameters<CreateItems<CollectionT, ItemT>>
-  ): Promise<VectorStoreItem<ItemT>[]>;
+    ...params: Parameters<CreateItems<CollectionT>>
+  ): ReturnType<CreateItems<CollectionT>>;
 
   abstract queryItems(
     ...params: Parameters<QueryItems<CollectionT, ItemT>>
-  ): Promise<VectorStoreItem<ItemT>[]>;
+  ): ReturnType<QueryItems<CollectionT, ItemT>>;
 }

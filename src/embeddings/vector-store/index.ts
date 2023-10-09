@@ -4,6 +4,7 @@ import BaseVectorStoreClient, {
   QueryItems,
 } from "src/embeddings/vector-store/base";
 import VectraClient from "src/embeddings/vector-store/vectra";
+import ChromaDBClient from "~/embeddings/vector-store/chromadb";
 
 class VectorStore extends BaseVectorStoreClient<BaseVectorStoreClient<any>> {
   client: BaseVectorStoreClient<any, any>;
@@ -11,16 +12,14 @@ class VectorStore extends BaseVectorStoreClient<BaseVectorStoreClient<any>> {
   constructor() {
     super();
 
-    if (process.env.VECTOR_STORE) {
-      this.client = new VectraClient();
+    if (process.env.VECTOR_STORE === "chromadb") {
+      this.client = new ChromaDBClient({ path: "http://0.0.0.0:8000" });
     } else {
       this.client = new VectraClient();
     }
   }
 
-  async connect() {
-    return this.client.connect();
-  }
+  async connect() {}
 
   findOrCreateCollection: FindOrCreateCollection = (...params) => {
     return this.client.findOrCreateCollection(...params);

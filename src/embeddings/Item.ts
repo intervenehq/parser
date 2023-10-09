@@ -1,19 +1,26 @@
+import { SetRequired } from "type-fest";
+
 export type ItemMetadata = Record<string, string | number | boolean>;
 
-export interface IVectorStoreItem {
+export interface IVectorStoreItem<Metadata = ItemMetadata> {
   id: string;
   embeddings: number[];
-  metadata: ItemMetadata;
+  metadata: Metadata;
+  distance?: number;
 }
 
-export default class VectorStoreItem<ProviderItemT = undefined> {
-  metadata?: ItemMetadata;
+export default class VectorStoreItem<
+  ProviderItemT = undefined,
+  Metadata extends ItemMetadata = ItemMetadata
+> {
+  metadata?: Metadata;
   object!: ProviderItemT extends undefined ? undefined : ProviderItemT;
   id: string;
   embeddings: number[];
+  distance: number;
 
   constructor(
-    props: IVectorStoreItem &
+    props: SetRequired<IVectorStoreItem<Metadata>, "distance"> &
       (ProviderItemT extends undefined
         ? {}
         : {
@@ -23,6 +30,7 @@ export default class VectorStoreItem<ProviderItemT = undefined> {
     this.id = props.id;
     this.embeddings = props.embeddings;
     this.metadata = props.metadata;
+    this.distance = props.distance;
 
     if ("object" in props) {
       this.object = props.object as any;

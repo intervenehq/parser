@@ -1,5 +1,5 @@
 import flatten from "lodash/flatten";
-import { EmbeddingFunction } from "~/embeddings/functions";
+import { EmbeddingFunction, EmbeddingResponse } from "~/embeddings/functions";
 import { openaiEmbeddingFunction } from "~/embeddings/functions/openai";
 
 export function createEmbeddings(
@@ -8,20 +8,20 @@ export function createEmbeddings(
 ): Promise<number[]>;
 
 export function createEmbeddings(
-  $text: string[],
+  $text: string[] | Iterable<string>,
   embeddingFunction?: EmbeddingFunction
-): Promise<number[][]>;
+): Promise<EmbeddingResponse>;
 
 export async function createEmbeddings(
-  $text: string | string[],
+  $text: string | string[] | Iterable<string>,
   embeddingFunction: EmbeddingFunction = openaiEmbeddingFunction
 ) {
-  const text = flatten([$text]);
+  const text = typeof $text === "string" ? [$text] : Array.from($text);
 
   const embeddings = await embeddingFunction(text);
 
   if (typeof $text === "string") {
-    return embeddings[0];
+    return embeddings[$text];
   } else {
     return embeddings;
   }
