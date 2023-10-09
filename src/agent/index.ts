@@ -15,7 +15,7 @@ import { t } from "~/utils/template";
 
 export const objectivePrefix = (
   params: Pick<OperationMetdata, "objective" | "context">,
-  withContext = true
+  withContext = true,
 ) =>
   t(
     [
@@ -28,7 +28,7 @@ export const objectivePrefix = (
       ...params,
       context: stringifyContext(params.context),
       showContext: withContext && !!Object.keys(params.context).length,
-    }
+    },
   );
 
 export const operationPrefix = (
@@ -36,7 +36,7 @@ export const operationPrefix = (
     OperationMetdata,
     "provider" | "path" | "method" | "description"
   >,
-  skipFirstLine = false
+  skipFirstLine = false,
 ) =>
   t(
     [
@@ -46,7 +46,7 @@ export const operationPrefix = (
       "HTTP method: {{method}}",
       "{{#if description}}description: {{description}}{{/if}}",
     ],
-    params
+    params,
   );
 
 export interface OperationMetdata {
@@ -78,7 +78,7 @@ export default class Parser {
   parse = async (
     objective: string,
     context: Record<string, JSONSchema7>,
-    openapiPaths: string[]
+    openapiPaths: string[],
   ) => {
     const openapis: OpenAPI.Document[] = [];
     for (const openapiPath of openapiPaths) {
@@ -92,7 +92,7 @@ export default class Parser {
     const shortlist = await this.externalResourceDirectory.shortlist(
       objective,
       context,
-      openapis
+      openapis,
     );
     console.log("Shortlist:", shortlist);
 
@@ -136,7 +136,7 @@ export default class Parser {
         console.log(
           "chosen API is not feasible, moving on to the next API. reason: '" +
             reason +
-            "'"
+            "'",
         );
         continue;
       }
@@ -165,7 +165,7 @@ export default class Parser {
           body: filteredBodySchema,
           query: filteredQuerySchema,
           path: filteredPathSchema,
-        })
+        }),
       );
 
       const {
@@ -185,7 +185,7 @@ export default class Parser {
           body: filteredContextForBody,
           query: filteredContextForQuery,
           path: filteredContextForPath,
-        })
+        }),
       );
 
       const bodyParams = await this.codeGen.generateInput({
@@ -217,7 +217,7 @@ export default class Parser {
           requestContentType,
           responseContentType,
           responseSchema,
-        })
+        }),
       );
 
       return;

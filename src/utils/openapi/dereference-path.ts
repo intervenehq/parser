@@ -97,7 +97,7 @@ function flattenRefs(d: any): any {
 export function dereferencePath(
   jsonData: any,
   httpMethod: string,
-  endpointPath: string
+  endpointPath: string,
 ) {
   data = jsonData;
 

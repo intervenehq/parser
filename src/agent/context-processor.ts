@@ -25,7 +25,7 @@ export default class ContextProcessor {
         query: JSONSchema7;
         path: JSONSchema7;
       };
-    }
+    },
   ) {
     const contextShortlist = Array.from(
       new Set([
@@ -41,7 +41,7 @@ export default class ContextProcessor {
           ...params,
           inputSchema: params.inputSchema.path,
         })),
-      ])
+      ]),
     );
 
     const filteredContextForBody = this.filterSchema({
@@ -71,7 +71,7 @@ export default class ContextProcessor {
     params: OperationMetdata & {
       inputSchema: JSONSchema7;
       contextShortlist: string[];
-    }
+    },
   ) {
     const filteredContext: Record<string, JSONSchema7> = {};
 
@@ -100,7 +100,7 @@ export default class ContextProcessor {
                     inputSchema: JSON.stringify(params.inputSchema),
                     key,
                     chunkSchema: JSON.stringify(params.inputSchema),
-                  }
+                  },
                 ),
               },
             ],
@@ -150,7 +150,7 @@ export default class ContextProcessor {
             {
               description: params.description,
               inputSchema: JSON.stringify(params.inputSchema),
-            }
+            },
           ),
         },
       ],

@@ -22,7 +22,7 @@
     "paths": {
       "~/utils/*": ["src/utils/*"],
       "~/embeddings/*": ["src/embeddings/*"],
-      "~/agent/*": ["src/agent/*"],
+      "~/agent/*": ["src/agent/*"]
     }
   }
 }

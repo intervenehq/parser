@@ -54,7 +54,7 @@ export default class CodeGen {
       inputSchema: JSONSchema7;
       filteredContext: OperationMetdata["context"];
       name: string;
-    }
+    },
   ) {
     const generatedCode = await this.parser.chatCompletion.generate({
       model: ChatCompletionModels.critical,
@@ -89,7 +89,7 @@ export default class CodeGen {
               needsContext: !!Object.keys(params.filteredContext).length,
               context: stringifyContext(params.filteredContext),
               langauge: this.langauge,
-            }
+            },
           ),
         },
       ],

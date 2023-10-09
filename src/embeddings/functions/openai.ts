@@ -12,6 +12,6 @@ export const openaiEmbeddingFunction: EmbeddingFunction = async (input) => {
   return Object.fromEntries(
     response.data
       .sort((a, b) => a.index - b.index)
-      .map((item) => [input[item.index], item.embedding])
+      .map((item) => [input[item.index], item.embedding]),
   );
 };

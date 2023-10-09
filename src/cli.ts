@@ -76,7 +76,7 @@ program
     });
 
     console.log(
-      `OpenAI API Key set to: ${apiKeyResponse.apiKey} and ${keyName} Key set to: ${dbKeyResponse.dbKey}`
+      `OpenAI API Key set to: ${apiKeyResponse.apiKey} and ${keyName} Key set to: ${dbKeyResponse.dbKey}`,
     );
 
     saveConfig(apiKeyResponse.apiKey, keyName, dbKeyResponse.dbKey);

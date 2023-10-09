@@ -8,7 +8,7 @@ function operationSchemas(
   operationObject:
     | OpenAPIV2.OperationObject
     | OpenAPIV3.OperationObject
-    | OpenAPIV3_1.OperationObject
+    | OpenAPIV3_1.OperationObject,
 ) {
   const parameters = $deref(operationObject.parameters) ?? [];
   const requestBody =
@@ -19,7 +19,7 @@ function operationSchemas(
     operationObject.responses?.["200"] ??
       operationObject.responses?.["201"] ??
       operationObject.responses?.["204"] ??
-      operationObject.responses?.default
+      operationObject.responses?.default,
   );
 
   let querySchema: JSONSchema7 | undefined;
@@ -54,7 +54,7 @@ function operationSchemas(
 
   if (requestBody) {
     requestContentType = getDefaultContentType(
-      Object.keys(requestBody.content)
+      Object.keys(requestBody.content),
     );
     bodySchema = requestBody.content[requestContentType]!.schema as JSONSchema7;
   }
@@ -64,7 +64,7 @@ function operationSchemas(
       responseSchema = successResponse.schema as JSONSchema7;
     } else if ("content" in successResponse) {
       responseContentType = getDefaultContentType(
-        Object.keys(successResponse.content ?? {})
+        Object.keys(successResponse.content ?? {}),
       );
       responseSchema = successResponse.content?.[responseContentType]
         ?.schema as JSONSchema7;
@@ -88,7 +88,7 @@ function operationSchemas(
  */
 function appendParameterToSchema(
   $schema: JSONSchema7 | undefined,
-  parameter: OpenAPIV2.ParameterObject | OpenAPIV3.ParameterObject
+  parameter: OpenAPIV2.ParameterObject | OpenAPIV3.ParameterObject,
 ) {
   const schema = cloneDeep($schema) ?? {
     type: "object",

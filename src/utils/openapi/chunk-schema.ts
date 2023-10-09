@@ -6,7 +6,7 @@ import { shallowSchema } from "~/utils/openapi/deepen-schema";
 function chunkSchema(
   schema: JSONSchema7,
   chunkRequiredProperties = false,
-  tokenLimit = 4000
+  tokenLimit = 4000,
 ) {
   if (
     !schema.type ||
@@ -27,7 +27,7 @@ function chunkSchema(
     const { chunks } = chunkProperties(
       schema,
       chunkRequiredProperties,
-      tokenLimit
+      tokenLimit,
     );
 
     chunks.map((chunk) => {
@@ -40,7 +40,7 @@ function chunkSchema(
     const { chunks } = chunkProperties(
       schema.items,
       chunkRequiredProperties,
-      tokenLimit
+      tokenLimit,
     );
 
     const itemMetadata = shallowSchema(schema.items);
@@ -65,7 +65,7 @@ function chunkSchema(
 function chunkProperties(
   objectSchema: JSONSchema7,
   chunkRequiredProperties = false,
-  tokenLimit = 4000
+  tokenLimit = 4000,
 ): {
   required: JSONSchema7["properties"];
   chunks: NonNullable<JSONSchema7["properties"]>[];

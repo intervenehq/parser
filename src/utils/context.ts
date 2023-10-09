@@ -3,7 +3,7 @@ import { shallowSchema } from "~/utils/openapi/deepen-schema";
 
 function stringifyContext(
   context: Record<string, JSONSchema7>,
-  shallow = true
+  shallow = true,
 ) {
   return Object.entries(context)
     .map(([key, schema]) => {

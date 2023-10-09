@@ -24,7 +24,7 @@ export default class ChromaDBClient extends BaseVectorStoreClient<
   }
 
   findOrCreateCollection: FindOrCreateCollection<Collection> = async (
-    name: string
+    name: string,
   ) => {
     const collection = await this.client.getOrCreateCollection({ name });
 
@@ -49,7 +49,7 @@ export default class ChromaDBClient extends BaseVectorStoreClient<
     collection,
     query,
     where,
-    limit = 10
+    limit = 10,
   ) => {
     const result = await collection.object.query({
       queryEmbeddings: query,

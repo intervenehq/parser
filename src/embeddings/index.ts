@@ -3,17 +3,17 @@ import { openaiEmbeddingFunction } from "~/embeddings/functions/openai";
 
 export function createEmbeddings(
   $text: string,
-  embeddingFunction?: EmbeddingFunction
+  embeddingFunction?: EmbeddingFunction,
 ): Promise<number[]>;
 
 export function createEmbeddings(
   $text: string[] | Iterable<string>,
-  embeddingFunction?: EmbeddingFunction
+  embeddingFunction?: EmbeddingFunction,
 ): Promise<EmbeddingResponse>;
 
 export async function createEmbeddings(
   $text: string | string[] | Iterable<string>,
-  embeddingFunction: EmbeddingFunction = openaiEmbeddingFunction
+  embeddingFunction: EmbeddingFunction = openaiEmbeddingFunction,
 ) {
   const text = typeof $text === "string" ? [$text] : Array.from($text);
 

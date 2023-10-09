@@ -63,7 +63,7 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     });
 
     const parseResult = params.generatorOutputSchema.safeParse(
-      JSON.parse(response.choices[0].message.function_call?.arguments ?? "{}")
+      JSON.parse(response.choices[0].message.function_call?.arguments ?? "{}"),
     );
 
     if (parseResult.success) {
@@ -98,7 +98,7 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     });
 
     const parseResult2 = params.generatorOutputSchema.safeParse(
-      JSON.parse(response2.choices[0].message.function_call?.arguments ?? "{}")
+      JSON.parse(response2.choices[0].message.function_call?.arguments ?? "{}"),
     );
 
     if (parseResult2.success) {
@@ -109,7 +109,7 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
 
     throw new Error(
       "GPT could not call a function even after retrying: " +
-        JSON.stringify(parseResult2.error.errors)
+        JSON.stringify(parseResult2.error.errors),
     );
   };
 }

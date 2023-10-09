@@ -16,7 +16,7 @@ export enum ChatCompletionModels {
 }
 
 export type GenerateStructuredChatCompletion<
-  $O extends SomeZodObject = SomeZodObject
+  $O extends SomeZodObject = SomeZodObject,
 > = <O extends $O>(params: {
   model: ChatCompletionModels;
   messages: IChatCompletionMessage[];

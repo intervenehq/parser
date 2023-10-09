@@ -21,8 +21,8 @@ function mergeSchema(schema1: JSONSchema7, schema2: JSONSchema7): JSONSchema7 {
   if (schema1.type !== schema2.type) {
     throw new Error(
       `schema1 and schema2 need to be of the same type, got ${JSON.stringify(
-        schema1
-      )} and ${JSON.stringify(schema2)}`
+        schema1,
+      )} and ${JSON.stringify(schema2)}`,
     );
   }
   let mergedSchema = cloneDeep(schema1);
@@ -33,7 +33,7 @@ function mergeSchema(schema1: JSONSchema7, schema2: JSONSchema7): JSONSchema7 {
   ) {
     if (schema1.type === "object") {
       mergedSchema.required = Array.from(
-        new Set(flatten(compact([schema1.required, schema2.required])))
+        new Set(flatten(compact([schema1.required, schema2.required]))),
       );
       mergedSchema.properties = {
         ...schema1.properties,
