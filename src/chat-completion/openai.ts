@@ -51,23 +51,23 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     const response = await this.client.chat.completions.create({
       model: MODELS[params.model],
       messages,
-      function_call: { name: params.name },
+      function_call: { name: params.generatorName },
       functions: [
         {
-          name: params.name,
-          description: params.description,
-          parameters: zodToJsonSchema(params.outputSchema),
+          name: params.generatorName,
+          description: params.generatorDescription,
+          parameters: zodToJsonSchema(params.generatorOutputSchema),
         },
       ],
       temperature: 0,
     });
 
-    const parseResult = params.outputSchema.safeParse(
+    const parseResult = params.generatorOutputSchema.safeParse(
       JSON.parse(response.choices[0].message.function_call?.arguments ?? "{}")
     );
 
     if (parseResult.success) {
-      return parseResult.data as Zod.infer<typeof params.outputSchema>;
+      return parseResult.data as Zod.infer<typeof params.generatorOutputSchema>;
     }
 
     messages.push({
@@ -86,23 +86,25 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     const response2 = await this.client.chat.completions.create({
       model: MODELS[params.model],
       messages,
-      function_call: { name: params.name },
+      function_call: { name: params.generatorName },
       functions: [
         {
-          name: params.name,
-          description: params.description,
-          parameters: zodToJsonSchema(params.outputSchema),
+          name: params.generatorName,
+          description: params.generatorDescription,
+          parameters: zodToJsonSchema(params.generatorOutputSchema),
         },
       ],
       temperature: 0,
     });
 
-    const parseResult2 = params.outputSchema.safeParse(
+    const parseResult2 = params.generatorOutputSchema.safeParse(
       JSON.parse(response2.choices[0].message.function_call?.arguments ?? "{}")
     );
 
     if (parseResult2.success) {
-      return parseResult2.data as Zod.infer<typeof params.outputSchema>;
+      return parseResult2.data as Zod.infer<
+        typeof params.generatorOutputSchema
+      >;
     }
 
     throw new Error(

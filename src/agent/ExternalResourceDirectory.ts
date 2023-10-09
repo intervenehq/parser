@@ -10,8 +10,9 @@ import { getDefaultContentType } from "~/utils/openapi/content-type";
 import { dereferencePath } from "~/utils/openapi/dereference-path";
 import { ChatCompletionModels } from "src/chat-completion/base";
 import { t } from "~/utils/template";
-import Parser from "~/agent/index";
+import Parser, { objectivePrefix } from "~/agent/index";
 import Zod from "zod";
+import { stringifyContext } from "~/utils/context";
 
 interface OpenAPIMetadata {
   paths: string;
@@ -25,8 +26,10 @@ export type ExternalResourcePath = string & {
 };
 
 export default class ExternalResourceDirectory {
-  constructor() {
-    console.log("ExternalResourcesDirectory instantiated");
+  private parser: Parser;
+
+  constructor(parser: Parser) {
+    this.parser = parser;
   }
 
   embed = async (api: OpenAPI.Document) => {
@@ -201,7 +204,6 @@ export default class ExternalResourceDirectory {
   };
 
   shortlist = async (
-    parser: Parser,
     objective: string,
     context: Record<string, JSONSchema7>,
     openapis: OpenAPI.Document[]
@@ -216,16 +218,11 @@ export default class ExternalResourceDirectory {
       description: string;
     }[] = [];
 
-    console.log({ matches });
-
     for (const match of matches) {
       const [provider, path, method] = match.split("#");
 
       const openapi = openapis.find((o) => o.info.title === provider);
-      const operationObject = dereferencePath(openapi, method, path) as
-        | OpenAPIV2.OperationObject
-        | OpenAPIV3.OperationObject
-        | OpenAPIV3_1.OperationObject;
+      const operationObject = openapi?.paths?.[path]?.[method];
       if (!operationObject) continue;
 
       matchDetails.push({
@@ -248,11 +245,8 @@ export default class ExternalResourceDirectory {
 
     const message = t(
       [
-        "I have this objective: '''{{objective}}'''",
+        ...objectivePrefix({ objective, context }),
         "I want to figure out what external resources (APIs) need to be called to achieve this objective.",
-        "I also have some contextual data, think of these variables that can be used to achieve this objective.",
-        "This context is represented as JSONSchema and is described below:",
-        "```{{context}}```",
         "Your task is to shortlist APIs for me, here is the list:",
         "{{#each matchesStr}}",
         "{{@index}}. {{this}}",
@@ -265,18 +259,11 @@ export default class ExternalResourceDirectory {
         "5. The order of the list matters, start with the best fit.",
       ],
       {
-        objective,
-        context: Object.entries(context)
-          .map(([key, schema]) => {
-            return '"' + key + '": ' + JSON.stringify(schema);
-          })
-          .join("\n"),
         matchesStr,
       }
     );
-    console.log({ message });
 
-    const { indexes } = await parser.chatCompletion.generateStructured({
+    const { indexes } = await this.parser.chatCompletion.generateStructured({
       model: ChatCompletionModels.critical,
       messages: [
         {
@@ -284,9 +271,10 @@ export default class ExternalResourceDirectory {
           role: "user",
         },
       ],
-      name: "api_shortlist",
-      description: "Shortlist APIs that might work out for the objective.",
-      outputSchema: Zod.object({
+      generatorName: "api_shortlist",
+      generatorDescription:
+        "Shortlist APIs that might work out for the objective.",
+      generatorOutputSchema: Zod.object({
         indexes: Zod.array(
           Zod.number()
             .min(0)
@@ -295,7 +283,6 @@ export default class ExternalResourceDirectory {
         ),
       }),
     });
-    console.log({ indexes });
 
     return matchDetails.filter((_, index) => {
       return indexes.includes(index);

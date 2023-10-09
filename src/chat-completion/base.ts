@@ -20,9 +20,9 @@ export type GenerateStructuredChatCompletion<
 > = <O extends $O>(params: {
   model: ChatCompletionModels;
   messages: IChatCompletionMessage[];
-  name: string;
-  description: string;
-  outputSchema: O;
+  generatorName: string;
+  generatorDescription: string;
+  generatorOutputSchema: O;
 }) => Promise<Zod.infer<O>>;
 
 export type GenerateChatCompletion = (params: {
