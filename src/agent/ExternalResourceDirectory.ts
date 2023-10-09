@@ -1,28 +1,36 @@
-import SwaggerParser from "@apidevtools/swagger-parser";
+import { JSONSchema7 } from "json-schema";
 import { compact, intersection } from "lodash";
 import { encode } from "gpt-3-encoder";
-import { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
+import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
 import vectorStore from "src/embeddings/vector-store";
-import VectorStoreItem, { IVectorStoreItem } from "~/embeddings/Item";
+import { IVectorStoreItem } from "~/embeddings/Item";
 import { createEmbeddings } from "~/embeddings/index";
 import { $deref } from "~/utils/openapi";
 import { getDefaultContentType } from "~/utils/openapi/content-type";
 import { dereferencePath } from "~/utils/openapi/dereference-path";
+import { ChatCompletionModels } from "src/chat-completion/base";
+import { t } from "~/utils/template";
+import Parser from "~/agent/index";
+import Zod from "zod";
 
 interface OpenAPIMetadata {
   paths: string;
   provider: string;
 }
 
-export default class ExternalResourcesDirectory {
+export type ExternalResourcePath = string & {
+  ____: never;
+  split(separator: "#"): [string, string, OpenAPIV2.HttpMethods];
+  split(separator: string): string[];
+};
+
+export default class ExternalResourceDirectory {
   constructor() {
     console.log("ExternalResourcesDirectory instantiated");
   }
 
-  embed = async (openapi: any) => {
+  embed = async (api: OpenAPI.Document) => {
     console.log("embed called with openapi");
-
-    const api = await SwaggerParser.parse(openapi);
 
     const mappings = new Map<string, Set<string>>();
     const collection = await vectorStore.findOrCreateCollection("openapi");
@@ -187,6 +195,110 @@ export default class ExternalResourcesDirectory {
       (a, b) => b[1] - a[1]
     );
 
-    return sortedPaths.map((entry) => entry[0]);
+    return sortedPaths
+      .map((entry) => entry[0])
+      .splice(0, 15) as ExternalResourcePath[];
+  };
+
+  shortlist = async (
+    parser: Parser,
+    objective: string,
+    context: Record<string, JSONSchema7>,
+    openapis: OpenAPI.Document[]
+  ) => {
+    const providers = openapis.map((openapi) => openapi.info.title);
+
+    const matches = await this.search(objective, providers);
+    const matchDetails: {
+      provider: string;
+      method: string;
+      path: string;
+      description: string;
+    }[] = [];
+
+    console.log({ matches });
+
+    for (const match of matches) {
+      const [provider, path, method] = match.split("#");
+
+      const openapi = openapis.find((o) => o.info.title === provider);
+      const operationObject = dereferencePath(openapi, method, path) as
+        | OpenAPIV2.OperationObject
+        | OpenAPIV3.OperationObject
+        | OpenAPIV3_1.OperationObject;
+      if (!operationObject) continue;
+
+      matchDetails.push({
+        provider,
+        method,
+        path,
+        description:
+          operationObject.description ??
+          operationObject.summary ??
+          operationObject.operationId ??
+          match,
+      });
+    }
+
+    const matchesStr = matchDetails.map(
+      ({ provider, method, path, description }) => {
+        return `${provider}: ${method.toUpperCase()} ${path}\n'${description}'`;
+      }
+    );
+
+    const message = t(
+      [
+        "I have this objective: '''{{objective}}'''",
+        "I want to figure out what external resources (APIs) need to be called to achieve this objective.",
+        "I also have some contextual data, think of these variables that can be used to achieve this objective.",
+        "This context is represented as JSONSchema and is described below:",
+        "```{{context}}```",
+        "Your task is to shortlist APIs for me, here is the list:",
+        "{{#each matchesStr}}",
+        "{{@index}}. {{this}}",
+        "{{/each}}",
+        "Rules:",
+        "1. It is important that you take note of the index.",
+        "2. You must choose at lest one API.",
+        "3. You can choose multiple APIs.",
+        "4. Keep the list liberal.",
+        "5. The order of the list matters, start with the best fit.",
+      ],
+      {
+        objective,
+        context: Object.entries(context)
+          .map(([key, schema]) => {
+            return '"' + key + '": ' + JSON.stringify(schema);
+          })
+          .join("\n"),
+        matchesStr,
+      }
+    );
+    console.log({ message });
+
+    const { indexes } = await parser.chatCompletion.generateStructured({
+      model: ChatCompletionModels.critical,
+      messages: [
+        {
+          content: message,
+          role: "user",
+        },
+      ],
+      name: "api_shortlist",
+      description: "Shortlist APIs that might work out for the objective.",
+      outputSchema: Zod.object({
+        indexes: Zod.array(
+          Zod.number()
+            .min(0)
+            .max(matchesStr.length - 1)
+            .describe("The index of API in the given list")
+        ),
+      }),
+    });
+    console.log({ indexes });
+
+    return matchDetails.filter((_, index) => {
+      return indexes.includes(index);
+    });
   };
 }
