@@ -30,15 +30,9 @@ export default abstract class BaseVectorStoreClient<
 
   abstract connect(): Promise<void>;
 
-  abstract findOrCreateCollection(
-    ...params: Parameters<FindOrCreateCollection<CollectionT>>
-  ): ReturnType<FindOrCreateCollection<CollectionT>>;
+  abstract findOrCreateCollection: FindOrCreateCollection<CollectionT>;
 
-  abstract createItems(
-    ...params: Parameters<CreateItems<CollectionT>>
-  ): ReturnType<CreateItems<CollectionT>>;
+  abstract createItems: CreateItems<CollectionT>;
 
-  abstract queryItems(
-    ...params: Parameters<QueryItems<CollectionT, ItemT>>
-  ): ReturnType<QueryItems<CollectionT, ItemT>>;
+  abstract queryItems: QueryItems<CollectionT, ItemT>;
 }
