@@ -26,7 +26,7 @@ export default class ExternalResourceEvaluator {
         query?: JSONSchema7;
         path?: JSONSchema7;
       };
-    },
+    }
   ) {
     const message = t(
       [
@@ -36,7 +36,7 @@ export default class ExternalResourceEvaluator {
         "{{#if bodySchema}}body schema: {{bodySchema}}{{/if}}",
         "{{#if querySchema}}query params schema: {{querySchema}}{{/if}}",
         "{{#if pathSchema}}path params schema: {{pathSchema}}{{/if}}",
-        "Did I pick the wrong external resource for the job?",
+        "Did I pick an inappropriate external resource for the job?",
         "The schemas provided are partial. The description provided will not convey full meaning.",
         "This is preliminary feasibility check, you will have access to more data later - keep it loose",
       ],
@@ -45,7 +45,7 @@ export default class ExternalResourceEvaluator {
         querySchema: JSON.stringify(params.requiredInputSchema.query),
         pathSchema: JSON.stringify(params.requiredInputSchema.path),
         context: stringifyContext(params.context),
-      },
+      }
     );
 
     const { is_this_the_right_external_resource, reason } =
@@ -57,15 +57,16 @@ export default class ExternalResourceEvaluator {
             role: "user",
           },
         ],
-        generatorName: "did_the_user_pick_wrong_external_resource",
-        generatorDescription: "Did the user pick the wrong external resource.",
+        generatorName: "did_the_user_pick_inappropriate_external_resource",
+        generatorDescription:
+          "Did the user pick the inappropriate external resource?",
         generatorOutputSchema: Zod.object({
           is_this_the_right_external_resource: Zod.boolean().describe(
-            "true if the resource is completely wrong, false otherwise",
+            "true if the chosen resource is inappropriate, false if it is appropriate"
           ),
-          reason: Zod.string().describe(
-            "reason why the resource is not correct",
-          ),
+          reason: Zod.string()
+            .describe("reason why the resource is not correct")
+            .min(10),
         }),
       });
 
@@ -84,7 +85,7 @@ export default class ExternalResourceEvaluator {
         query?: JSONSchema7;
         path?: JSONSchema7;
       };
-    },
+    }
   ) {
     return {
       body: await this.filterInputSchema({
@@ -109,7 +110,7 @@ export default class ExternalResourceEvaluator {
     params: OperationMetdata & {
       requiredInputSchema?: JSONSchema7;
       inputSchema?: JSONSchema7;
-    },
+    }
   ) {
     let filteredSchema = params.requiredInputSchema ?? {};
     const chunks = chunkSchema(params.inputSchema ?? {});
@@ -133,7 +134,7 @@ export default class ExternalResourceEvaluator {
                 {
                   filteredSchema: JSON.stringify(filteredSchema),
                   chunkSchema: JSON.stringify(chunkSchema),
-                },
+                }
               ),
             },
           ],
@@ -144,7 +145,7 @@ export default class ExternalResourceEvaluator {
             shortlist: Zod.array(Zod.enum(propertyNames as [string])),
           }),
           model: ChatCompletionModels.critical,
-        },
+        }
       );
 
       const subSchema = getSubSchema(chunkSchema, shortlist);

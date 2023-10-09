@@ -20,7 +20,7 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     this.client = new OpenAI(clientOptions);
   }
 
-  generate: GenerateChatCompletion = async (params) => {
+  generate: GenerateChatCompletion = async (params, extraArgs) => {
     const response = await this.client.chat.completions.create({
       model: MODELS[params.model],
       messages: params.messages.map((message) => ({
@@ -28,6 +28,8 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
         content: message.content,
       })),
       temperature: 0,
+      ...extraArgs,
+      stream: false,
     });
 
     return {
@@ -36,7 +38,10 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     };
   };
 
-  generateStructured: GenerateStructuredChatCompletion = async (params) => {
+  generateStructured: GenerateStructuredChatCompletion = async (
+    params,
+    extraArgs
+  ) => {
     const messages: ChatCompletionCreateParamsBase["messages"] = [
       ...params.messages.map((message) => ({
         role: message.role,
@@ -60,10 +65,12 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
         },
       ],
       temperature: 0,
+      ...extraArgs,
+      stream: false,
     });
 
     const parseResult = params.generatorOutputSchema.safeParse(
-      JSON.parse(response.choices[0].message.function_call?.arguments ?? "{}"),
+      JSON.parse(response.choices[0].message.function_call?.arguments ?? "{}")
     );
 
     if (parseResult.success) {
@@ -95,10 +102,12 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
         },
       ],
       temperature: 0,
+      ...extraArgs,
+      stream: false,
     });
 
     const parseResult2 = params.generatorOutputSchema.safeParse(
-      JSON.parse(response2.choices[0].message.function_call?.arguments ?? "{}"),
+      JSON.parse(response2.choices[0].message.function_call?.arguments ?? "{}")
     );
 
     if (parseResult2.success) {
@@ -109,7 +118,7 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
 
     throw new Error(
       "GPT could not call a function even after retrying: " +
-        JSON.stringify(parseResult2.error.errors),
+        JSON.stringify(parseResult2.error.errors)
     );
   };
 }

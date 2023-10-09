@@ -54,46 +54,64 @@ export default class CodeGen {
       inputSchema: JSONSchema7;
       filteredContext: OperationMetdata["context"];
       name: string;
-    },
+    }
   ) {
-    const generatedCode = await this.parser.chatCompletion.generate({
-      model: ChatCompletionModels.critical,
-      messages: [
-        {
-          role: "user",
-          content: t(
-            [
-              ...objectivePrefix(params, false),
-              ...operationPrefix(params),
-              "{{#if needsContext}}",
-              "Here are the JSONSchemas representing variables from the steps that occurred before:",
-              "{{#each context}}{{@key}}: ```{{this}}```\n{{/each}}",
-              "{{/if}}",
-              "Your task is to generate a function in {{langauge}} that follows exactly this format:",
-              "```" +
-                functionBoilerplate("get_" + params.name + "_params")[
-                  this.langauge
-                ] +
-                "```",
-              "Where it says <expression>, this function needs to return a value that satisfies the following JSON schema:",
-              "```{{inputSchema}}```",
-              "Rules:",
-              "1. You can only use data hidden in the plan or use any of the variables.",
-              "2. You must not assume or imagine any piece of data.",
-              "3. You must reply with null if the expression can not be generated.",
-              "4. You must reply only with the JS expression. No comments or explanation.",
-              "5. You are going to reply with code that is directly eval'd on a server. Do not wrap it with markdown or '```'.",
-            ],
-            {
-              inputSchema: JSON.stringify(params.inputSchema),
-              needsContext: !!Object.keys(params.filteredContext).length,
-              context: stringifyContext(params.filteredContext),
-              langauge: this.langauge,
-            },
-          ),
+    const boilerplate = functionBoilerplate("get_" + params.name + "_params")[
+      this.langauge
+    ];
+    const generatedCode = await this.parser.chatCompletion.generate(
+      {
+        model: ChatCompletionModels.critical,
+        messages: [
+          {
+            role: "user",
+            content: t(
+              [
+                ...objectivePrefix(params, false),
+                ...operationPrefix(params),
+                "{{#if needsContext}}",
+                "Here are the JSONSchemas representing variables from the steps that occurred before:",
+                "{{#each context}}{{@key}}: ```{{this}}```\n{{/each}}",
+                "{{/if}}",
+                "Your task is to generate a function in {{langauge}} that follows exactly this format:",
+                "```" + boilerplate + "```",
+                "Where it says <expression>, this function needs to return a value that satisfies the following JSON schema:",
+                "```{{inputSchema}}```",
+                "Rules:",
+                "1. You can only use data hidden in the plan or use any of the variables.",
+                "2. You must not assume or imagine any piece of data.",
+                "3. You must reply with null if the expression can not be generated.",
+                "4. You must reply only with the JS expression. No comments or explanation.",
+                "5. You are going to reply with code that is directly eval'd on a server. Do not wrap it with markdown or '```'.",
+              ],
+              {
+                inputSchema: JSON.stringify(params.inputSchema),
+                needsContext: !!Object.keys(params.filteredContext).length,
+                context: stringifyContext(params.filteredContext),
+                langauge: this.langauge,
+              }
+            ),
+          },
+          {
+            role: "system",
+            content: t([
+              "This is NOT correct response:",
+              `\`\`\`${boilerplate}\`\`\``,
+              "This is also NOT correct response:",
+              `\`\`\`${this.langauge} ${boilerplate}\`\`\``,
+              "This is correct response:",
+              boilerplate,
+              "IN SHORT: no markdown, no tildes",
+            ]),
+          },
+        ],
+      },
+      {
+        logit_bias: {
+          "15506": -1,
         },
-      ],
-    });
+      }
+    );
 
     return generatedCode.content;
   }
