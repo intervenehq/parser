@@ -6,7 +6,6 @@ import Parser, {
   objectivePrefix,
   operationPrefix,
 } from "~/agent/index";
-import { stringifyContext } from "~/utils/context";
 import { chunkSchema, getSubSchema } from "~/utils/openapi/chunk-schema";
 import { deepenSchema, shallowSchema } from "~/utils/openapi/deepen-schema";
 import { mergeSchema } from "~/utils/openapi/merge-schema";

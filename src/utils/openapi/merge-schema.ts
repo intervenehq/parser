@@ -3,17 +3,17 @@ import { cloneDeep, compact, flatten } from "lodash";
 
 function mergeSchema(schema1: JSONSchema7, schema2: JSONSchema7): JSONSchema7 {
   if (!schema1.type) {
-    if (!!schema1.properties) {
+    if (schema1.properties) {
       schema1.type = "object";
-    } else if (!!schema1.items) {
+    } else if (schema1.items) {
       schema1.type = "array";
     }
   }
 
   if (!schema2.type) {
-    if (!!schema2.properties) {
+    if (schema2.properties) {
       schema2.type = "object";
-    } else if (!!schema2.items) {
+    } else if (schema2.items) {
       schema2.type = "array";
     }
   }

@@ -1,9 +1,8 @@
-import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
+import { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
 import { JSONSchema7 } from "json-schema";
 import { $deref } from "~/utils/openapi";
 import { cloneDeep } from "lodash";
 import { getDefaultContentType } from "~/utils/openapi/content-type";
-import { dereferencePath } from "~/utils/openapi/dereference-path";
 
 function operationSchemas(
   operationObject:
@@ -53,7 +52,7 @@ function operationSchemas(
     }
   }
 
-  if (!!requestBody) {
+  if (requestBody) {
     requestContentType = getDefaultContentType(
       Object.keys(requestBody.content)
     );

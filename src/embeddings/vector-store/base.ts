@@ -1,7 +1,4 @@
-import VectorStoreItem, {
-  IVectorStoreItem,
-  ItemMetadata,
-} from "src/embeddings/Item";
+import VectorStoreItem, { IVectorStoreItem } from "src/embeddings/Item";
 import VectorStoreCollection from "../Collection";
 import { Collection } from "chromadb";
 

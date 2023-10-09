@@ -1,4 +1,3 @@
-import flatten from "lodash/flatten";
 import { EmbeddingFunction, EmbeddingResponse } from "~/embeddings/functions";
 import { openaiEmbeddingFunction } from "~/embeddings/functions/openai";
 

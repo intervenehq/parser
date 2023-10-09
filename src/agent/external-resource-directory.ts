@@ -12,12 +12,6 @@ import { ChatCompletionModels } from "src/chat-completion/base";
 import { t } from "~/utils/template";
 import Parser, { objectivePrefix } from "~/agent/index";
 import Zod from "zod";
-import { stringifyContext } from "~/utils/context";
-
-interface OpenAPIMetadata {
-  paths: string;
-  provider: string;
-}
 
 export type ExternalResourcePath = string & {
   ____: never;

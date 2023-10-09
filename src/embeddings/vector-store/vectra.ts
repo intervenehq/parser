@@ -7,10 +7,7 @@ import { IndexItem, LocalIndex } from "vectra";
 import path from "path";
 import { rootdir } from "../../utils/rootdir";
 import VectorStoreCollection from "src/embeddings/Collection";
-import VectorStoreItem, {
-  IVectorStoreItem,
-  ItemMetadata,
-} from "src/embeddings/Item";
+import VectorStoreItem from "src/embeddings/Item";
 
 export default class VectraClient extends BaseVectorStoreClient<
   undefined,

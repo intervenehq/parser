@@ -22,21 +22,13 @@ function chunkSchema(
     propertyNames: string[];
     schema: JSONSchema7;
   }[] = [];
-  let requiredSchema: JSONSchema7 | undefined;
 
   if (schema.type === "object") {
-    const { required, chunks } = chunkProperties(
+    const { chunks } = chunkProperties(
       schema,
       chunkRequiredProperties,
       tokenLimit
     );
-
-    if (required) {
-      requiredSchema = {
-        ...metadata,
-        properties: required,
-      };
-    }
 
     chunks.map((chunk) => {
       chunkedSchema.push({
@@ -45,7 +37,7 @@ function chunkSchema(
       });
     });
   } else if (!Array.isArray(schema.items) && typeof schema.items === "object") {
-    const { required, chunks } = chunkProperties(
+    const { chunks } = chunkProperties(
       schema.items,
       chunkRequiredProperties,
       tokenLimit

@@ -66,7 +66,7 @@ program
       initial: currentConfig?.VECTORDB?.NAME === "ChromaDB" ? 0 : 1,
     });
 
-    let keyName =
+    const keyName =
       vectorDbResponse.vectorDb === "chromaDB" ? "ChromaDB" : "Pinecone";
     const dbKeyResponse = await prompts({
       type: "text",
