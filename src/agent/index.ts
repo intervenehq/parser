@@ -3,10 +3,10 @@ import { JSONSchema7 } from "json-schema";
 
 import { OpenAPI } from "openapi-types";
 import ChatCompletion from "src/chat-completion";
-import CodeGen, { CodeGenLanguage } from "~/agent/CodeGen";
-import ContextProcessor from "~/agent/ContextProcessor";
-import ExternalResourceDirectory from "~/agent/ExternalResourceDirectory";
-import ExternalResourceEvaluator from "~/agent/ExternalResourceEvaluator";
+import CodeGen, { CodeGenLanguage } from "~/agent/code-gen";
+import ContextProcessor from "~/agent/context-processor";
+import ExternalResourceDirectory from "~/agent/external-resource-directory";
+import ExternalResourceEvaluator from "~/agent/external-resource-evaluator";
 import { stringifyContext } from "~/utils/context";
 import { dereferencePath } from "~/utils/openapi/dereference-path";
 import { operationSchemas } from "~/utils/openapi/operation";
