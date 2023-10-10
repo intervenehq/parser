@@ -35,22 +35,26 @@ export default class ExternalResourceDirectory {
     for (const path in api.paths) {
       for (const httpMethod of intersection(
         Object.values(OpenAPIV2.HttpMethods),
-        Object.keys(api.paths[path]!),
+        Object.keys(api.paths[path]!)
       )) {
         const fullPath = [api.info.title, path, httpMethod].join("#");
 
         const operationObject = $deref(
-          dereferencePath(api, httpMethod, path) as
+          dereferencePath(
+            api as OpenAPIV3.Document,
+            httpMethod as keyof OpenAPIV3.PathItemObject,
+            path
+          ) as
             | OpenAPIV2.OperationObject
             | OpenAPIV3.OperationObject
-            | OpenAPIV3_1.OperationObject,
+            | OpenAPIV3_1.OperationObject
         )!;
 
         const parameters =
           operationObject.parameters?.map((p) => $deref(p)) ?? [];
         for (const parameter of parameters) {
           const key = compact([parameter.name, parameter.description]).join(
-            ": ",
+            ": "
           );
           if (!mappings.has(key)) mappings.set(key, new Set<string>());
 
@@ -62,10 +66,10 @@ export default class ExternalResourceDirectory {
             ? $deref(operationObject.requestBody)
             : undefined;
         const defaultContentType = getDefaultContentType(
-          Object.keys(requestBody?.content ?? []),
+          Object.keys(requestBody?.content ?? [])
         );
         const requestBodySchema = $deref(
-          requestBody?.content?.[defaultContentType]?.schema,
+          requestBody?.content?.[defaultContentType]?.schema
         );
         if (requestBodySchema) {
           let properties:
@@ -91,7 +95,7 @@ export default class ExternalResourceDirectory {
             const property = $deref(properties[propertyName]);
 
             const key = compact([propertyName, property.description]).join(
-              ": ",
+              ": "
             );
             if (!mappings.has(key)) mappings.set(key, new Set<string>());
             mappings.get(key)?.add(fullPath);
@@ -121,12 +125,12 @@ export default class ExternalResourceDirectory {
           }
 
           return [key, $key];
-        }),
+        })
       );
 
       console.log("creating embeddings for batch", Object.keys(batchMap));
       const vectorStoreItems = Object.entries(
-        await createEmbeddings(Object.keys(batchMap)),
+        await createEmbeddings(Object.keys(batchMap))
       ).map(([input, embedding]) => {
         const key = batchMap[input];
 
@@ -141,7 +145,7 @@ export default class ExternalResourceDirectory {
       });
       console.log(
         "embeddings created. now pushing to vector store",
-        Object.keys(batchMap),
+        Object.keys(batchMap)
       );
       await vectorStore.createItems(collection, vectorStoreItems);
     }
@@ -173,7 +177,7 @@ export default class ExternalResourceDirectory {
             provider: {
               $eq: providers[0],
             },
-          },
+          }
     );
     console.log("Found matches:", matches);
 
@@ -189,7 +193,7 @@ export default class ExternalResourceDirectory {
     }
 
     const sortedPaths = Array.from(pathScores.entries()).sort(
-      (a, b) => b[1] - a[1],
+      (a, b) => b[1] - a[1]
     );
 
     return sortedPaths
@@ -200,7 +204,7 @@ export default class ExternalResourceDirectory {
   shortlist = async (
     objective: string,
     context: Record<string, JSONSchema7>,
-    openapis: OpenAPI.Document[],
+    openapis: OpenAPI.Document[]
   ) => {
     const providers = openapis.map((openapi) => openapi.info.title);
 
@@ -234,7 +238,7 @@ export default class ExternalResourceDirectory {
     const matchesStr = matchDetails.map(
       ({ provider, method, path, description }) => {
         return `${provider}: ${method.toUpperCase()} ${path}\n'${description}'`;
-      },
+      }
     );
 
     const message = t(
@@ -254,7 +258,7 @@ export default class ExternalResourceDirectory {
       ],
       {
         matchesStr,
-      },
+      }
     );
 
     const { indexes } = await this.parser.chatCompletion.generateStructured({
@@ -273,7 +277,7 @@ export default class ExternalResourceDirectory {
           Zod.number()
             .min(0)
             .max(matchesStr.length - 1)
-            .describe("The index of API in the given list"),
+            .describe("The index of API in the given list")
         ),
       }),
     });
