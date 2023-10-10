@@ -113,7 +113,7 @@ export default class Parser {
     console.log("Shortlist:", shortlist);
 
     for (const api of shortlist) {
-      const openapi = openapis.find((o) => o.info.title === api.provider);
+      const openapi = openapis.find((o) => o.info.title === api.provider)!;
       const operationObject = dereferencePath(openapi, api.method, api.path);
       if (!operationObject) continue;
 
