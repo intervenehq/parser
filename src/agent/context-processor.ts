@@ -46,17 +46,17 @@ export default class ContextProcessor {
       ]),
     );
 
-    const filteredContextForBody = this.filterSchema({
+    const filteredContextForBody = await this.filterSchema({
       ...params,
       inputSchema: params.inputSchema.body,
       contextShortlist,
     });
-    const filteredContextForQuery = this.filterSchema({
+    const filteredContextForQuery = await this.filterSchema({
       ...params,
       inputSchema: params.inputSchema.query,
       contextShortlist,
     });
-    const filteredContextForPath = this.filterSchema({
+    const filteredContextForPath = await this.filterSchema({
       ...params,
       inputSchema: params.inputSchema.path,
       contextShortlist,
@@ -77,11 +77,16 @@ export default class ContextProcessor {
   ) {
     const filteredContext: Record<string, JSONSchema7> = {};
 
-    for (const key of Object.keys(params.context)) {
+    for (const key of params.contextShortlist) {
       let filteredSchema = shallowSchema(params.context[key]);
       const chunks = chunkSchema(params.context[key], true);
 
       for (const { schema: chunkSchema, propertyNames } of chunks) {
+        if (!propertyNames.length) {
+          filteredSchema = mergeSchema(filteredSchema, chunkSchema);
+          continue;
+        }
+
         const { shortlist } =
           await this.parser.chatCompletion.generateStructured({
             messages: [
@@ -89,7 +94,7 @@ export default class ContextProcessor {
                 role: 'user',
                 content: t(
                   [
-                    ...objectivePrefix(params),
+                    ...objectivePrefix(params, false),
                     ...operationPrefix(params),
                     'And I came up with this input JSON schema to the resource:',
                     '```{{inputSchema}}```',

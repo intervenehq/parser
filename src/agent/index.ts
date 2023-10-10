@@ -4,6 +4,7 @@ import SwaggerParser from '@apidevtools/swagger-parser';
 import { JSONSchema7 } from 'json-schema';
 import { OpenAPI } from 'openapi-types';
 import { Options as OraOptions } from 'ora';
+
 import { cli } from 'src/cli';
 import CodeGen, { CodeGenLanguage } from '~/agent/code-gen';
 import ContextProcessor from '~/agent/context-processor';
@@ -25,7 +26,7 @@ export const objectivePrefix = (
   t(
     [
       "I have this objective: '''{{objective}}'''",
-      '{{#if showContext}}I also have some contextual data, think of these as variables that can be used to achieve the given objective.',
+      '{{#if showContext}}I also have some historical contextual data, think of these as variables that can be used to achieve the given objective.',
       'This context is represented as the following JSON schema:',
       '```{{context}}```{{/if}}',
     ],
@@ -154,15 +155,17 @@ export default class Parser {
         });
 
       if (!isFeasible) {
-        cli.error(
-          "chosen API is not feasible, moving on to the next API. reason: '" +
-            reason +
-            "'",
+        cli.warn(
+          `chosen API (${api.provider}: ${api.method} ${api.path}) is not feasible, moving on to the next API. reason: '${reason}'`,
         );
         continue;
       }
 
-      cli.log('Chosen API is feasible, evaluating it further.');
+      cli.log(
+        `Chosen API (${api.provider}: ${api.method} ${api.path}) is feasible, evaluating it further.`,
+      );
+
+      cli.log('Narrowing down the parameter schemas for the API...');
 
       const {
         body: filteredBodySchema,
@@ -182,14 +185,16 @@ export default class Parser {
         },
       });
 
-      cli.log('Narrowing down the keys that need to be sent...');
-
       cli.info(
         JSON.stringify({
           body: filteredBodySchema,
           query: filteredQuerySchema,
           path: filteredPathSchema,
         }),
+      );
+
+      cli.log(
+        'Narrowing down the historical context that can be used in the API call...',
       );
 
       const {
@@ -205,8 +210,6 @@ export default class Parser {
         },
       });
 
-      cli.log('Narrowing down the variables that go into the keys...');
-
       cli.info(
         JSON.stringify({
           body: filteredContextForBody,
@@ -214,6 +217,8 @@ export default class Parser {
           path: filteredContextForPath,
         }),
       );
+
+      cli.log('Generating the input parameters...');
 
       const bodyParams = await this.codeGen.generateInput({
         ...operationMetadata,

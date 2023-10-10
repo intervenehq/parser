@@ -4,53 +4,45 @@ import compact from 'lodash/compact';
 import flatten from 'lodash/flatten';
 
 function mergeSchema(schema1: JSONSchema7, schema2: JSONSchema7): JSONSchema7 {
-  if (!schema1.type) {
-    if (schema1.properties) {
-      schema1.type = 'object';
-    } else if (schema1.items) {
-      schema1.type = 'array';
-    }
-  }
+  const type = schema1.type ?? schema2.type;
+  schema1.type = type;
+  schema2.type = type;
 
-  if (!schema2.type) {
-    if (schema2.properties) {
-      schema2.type = 'object';
-    } else if (schema2.items) {
-      schema2.type = 'array';
-    }
-  }
-
-  if (schema1.type !== schema2.type) {
-    throw new Error(
-      `schema1 and schema2 need to be of the same type, got ${JSON.stringify(
-        schema1,
-      )} and ${JSON.stringify(schema2)}`,
-    );
-  }
   let mergedSchema = cloneDeep(schema1);
 
-  if (
-    schema1.type === 'object' ||
-    (schema1.type === 'array' && !Array.isArray(schema1.items))
+  if (schema1.type === 'object') {
+    mergedSchema.required = Array.from(
+      new Set(flatten(compact([mergedSchema.required, schema2.required]))),
+    );
+    mergedSchema.properties = {
+      ...mergedSchema.properties,
+      ...schema2.properties,
+    };
+  } else if (
+    mergedSchema.type === 'array' &&
+    typeof schema2.items === 'object' &&
+    !Array.isArray(schema2.items)
   ) {
-    if (schema1.type === 'object') {
-      mergedSchema.required = Array.from(
-        new Set(flatten(compact([schema1.required, schema2.required]))),
-      );
-      mergedSchema.properties = {
-        ...schema1.properties,
-        ...schema2.properties,
-      };
-    }
-
-    if (
-      schema1.type === 'array' &&
-      typeof schema1.items === 'object' &&
-      typeof schema2.items === 'object' &&
-      !Array.isArray(schema1.items) &&
-      !Array.isArray(schema2.items)
+    if (!schema1.items) {
+      mergedSchema.items = schema2.items;
+    } else if (
+      !Array.isArray(mergedSchema.items) &&
+      typeof mergedSchema.items === 'object'
     ) {
-      mergedSchema.items = mergeSchema(schema1.items, schema2.items);
+      mergedSchema.items = mergeSchema(mergedSchema.items, schema2.items);
+    } else {
+      if (Array.isArray(mergedSchema.items) && Array.isArray(schema2.items)) {
+        for (
+          let i = 0;
+          i < Math.max(mergedSchema.items.length, schema2.items.length);
+          i += 1
+        ) {
+          mergedSchema.items[i] = mergeSchema(
+            mergedSchema.items[i] as JSONSchema7,
+            schema2.items[i],
+          );
+        }
+      }
     }
   } else {
     mergedSchema = {

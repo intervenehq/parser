@@ -67,7 +67,9 @@ export default class ExternalResourceEvaluator {
             'true if the chosen resource is inappropriate, false if it is appropriate',
           ),
           reason: Zod.string()
-            .describe('reason why the resource is not correct')
+            .describe(
+              'reason why the resource is not correct, need to be a valid reason',
+            )
             .min(10),
         }),
       });
@@ -125,7 +127,7 @@ export default class ExternalResourceEvaluator {
               role: 'user',
               content: t(
                 [
-                  ...objectivePrefix(params),
+                  ...objectivePrefix(params, false),
                   ...operationPrefix(params),
                   'And I came up with this input to the resource:',
                   '```{{filteredSchema}}```',
