@@ -34,7 +34,9 @@ class CLI {
   init() {
     this.program
       .name("intervene-parser")
-      .description("CLI for Intervene to parse natural language")
+      .description(
+        "CLI for Intervene to parse natural language to type safe API calls"
+      )
       .version(version);
 
     this.program
@@ -44,7 +46,7 @@ class CLI {
 
     this.program
       .command("parse")
-      .description("Parse natural language")
+      .description("Parse natural language to type safe API calls")
       .argument(
         "<objective>",
         "The objective in natural language. Must be atomic"
@@ -129,10 +131,6 @@ class CLI {
 
   private configure = async () => {
     const currentConfig = await readConfig();
-    await this.showLoader();
-    // sleep
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    await this.hideLoader();
 
     const { OPENAI_API_KEY } = await prompts({
       type: "text",
@@ -164,9 +162,14 @@ class CLI {
   ) {
     const files = ($files ?? "").split(",");
 
-    const context = (await Bun.file(options.context).exists())
-      ? Bun.file(options.context).json()
-      : JSON.parse(options.context ?? "{}");
+    let context = {};
+    try {
+      if (await Bun.file(options.context).exists()) {
+        context = Bun.file(options.context).json();
+      }
+    } catch (e) {}
+    console.log(objective, files, context);
+
     const parser = new Parser(this, options.language);
 
     await parser.parse(objective, context, files);
@@ -174,7 +177,3 @@ class CLI {
 }
 
 export const cli = new CLI();
-
-if (!!process.env.CLI) {
-  cli.init();
-}
