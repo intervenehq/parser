@@ -18,8 +18,8 @@ dependencies:
     specifier: ^5.3.0
     version: 5.3.0
   chromadb:
-    specifier: ^1.5.11
-    version: 1.5.11(openai@4.11.1)
+    specifier: 1.5.3
+    version: 1.5.3
   commander:
     specifier: ^11.0.0
     version: 11.0.0
@@ -884,22 +884,8 @@ packages:
     resolution: {integrity: sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==}
     dev: false
 
-  /chromadb@1.5.11(openai@4.11.1):
-    resolution: {integrity: sha512-mIg0DtWZFsf4hl05orRixIw3lBYKUc4AGydbUQVwd7sjwaCsgP1j0qHwYxoopj2H1L7yc8OUyFKhi79MoFMoMQ==}
-    engines: {node: '>=14.17.0'}
-    peerDependencies:
-      cohere-ai: ^5.0.0 || ^6.0.0
-      openai: ^3.0.0 || ^4.0.0
-    peerDependenciesMeta:
-      cohere-ai:
-        optional: true
-      openai:
-        optional: true
-    dependencies:
-      isomorphic-fetch: 3.0.0
-      openai: 4.11.1
-    transitivePeerDependencies:
-      - encoding
+  /chromadb@1.5.3:
+    resolution: {integrity: sha512-oQYs3cbSJJiSMYipL/5btX8U3bnW5X1CEMpJnl83XEGWR0uvRp8GtoznKPKPTcuVBMMtKkE1MdeMckWA72M4lw==}
     dev: false
 
   /cli-cursor@4.0.0:
@@ -1685,15 +1671,6 @@ packages:
   /isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
     dev: true
-
-  /isomorphic-fetch@3.0.0:
-    resolution: {integrity: sha512-qvUtwJ3j6qwsF3jLxkZ72qCgjMysPzDfeV240JHiGZsANBYd+EEuu35v7dfrJ9Up0Ak07D7GGSkGhCHTqg/5wA==}
-    dependencies:
-      node-fetch: 2.7.0
-      whatwg-fetch: 3.6.19
-    transitivePeerDependencies:
-      - encoding
-    dev: false
 
   /js-yaml@3.14.1:
     resolution: {integrity: sha512-okMH7OXXJ7YrN9Ok3/SXrnu4iX9yOk+25nqX4imS2npuvTYDmo/QEZoqwZkYaIDk3jVvBOTOIEgEhaLOynBS9g==}
@@ -2517,10 +2494,6 @@ packages:
 
   /webidl-conversions@3.0.1:
     resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
-    dev: false
-
-  /whatwg-fetch@3.6.19:
-    resolution: {integrity: sha512-d67JP4dHSbm2TrpFj8AbO8DnL1JXL5J9u0Kq2xW6d0TFDbCA3Muhdt8orXC22utleTVj7Prqt82baN6RBvnEgw==}
     dev: false
 
   /whatwg-url@5.0.0:

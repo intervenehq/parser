@@ -11,19 +11,7 @@ import newGithubIssueUrl from "new-github-issue-url";
 import { t } from "~/utils/template";
 import { version } from "../../package.json";
 import fs from "fs";
-
-const configFile = path.join(os.homedir(), ".interveneconfig");
-
-export const readConfig = async (): Promise<Record<string, string>> => {
-  const config = fs.existsSync(configFile)
-    ? await JSON.parse(await fs.promises.readFile(configFile, "utf8"))
-    : {};
-
-  return {
-    ...process.env,
-    ...config,
-  };
-};
+import { configFile, getConfig } from "~/utils/config";
 
 class CLI {
   program: Command;
@@ -133,7 +121,7 @@ class CLI {
   }
 
   private configure = async () => {
-    const currentConfig = await readConfig();
+    const currentConfig = await getConfig();
 
     const { OPENAI_API_KEY } = await prompts({
       type: "text",
@@ -165,7 +153,7 @@ class CLI {
     options: { language: CodeGenLanguage; context: string }
   ) {
     const files = ($files ?? "").split(",");
-    process.env = { ...(await readConfig()) };
+    process.env = { ...(await getConfig()) };
 
     let context = {};
     try {

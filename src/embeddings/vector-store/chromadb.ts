@@ -3,27 +3,27 @@ import BaseVectorStoreClient, {
   FindOrCreateCollection,
   QueryItems,
 } from "./base";
-import * as ChromaDB from "chromadb";
+import { ChromaClient, Collection } from "chromadb/dist/main";
 import VectorStoreCollection from "src/embeddings/Collection";
 import VectorStoreItem from "src/embeddings/Item";
 
 export default class ChromaDBClient extends BaseVectorStoreClient<
-  ChromaDB.ChromaClient,
-  ChromaDB.Collection
+  ChromaClient,
+  Collection
 > {
-  client: ChromaDB.ChromaClient;
+  client: ChromaClient;
 
-  constructor(...params: ConstructorParameters<typeof ChromaDB.ChromaClient>) {
+  constructor(...params: ConstructorParameters<typeof ChromaClient>) {
     super();
 
-    this.client = new ChromaDB.ChromaClient(...params);
+    this.client = new ChromaClient(...params);
   }
 
   async connect() {
     return Promise.resolve();
   }
 
-  findOrCreateCollection: FindOrCreateCollection<ChromaDB.Collection> = async (
+  findOrCreateCollection: FindOrCreateCollection<Collection> = async (
     name: string
   ) => {
     const collection = await this.client.getOrCreateCollection({ name });
@@ -31,7 +31,7 @@ export default class ChromaDBClient extends BaseVectorStoreClient<
     return new VectorStoreCollection({ name: name, object: collection });
   };
 
-  createItems: CreateItems<ChromaDB.Collection> = async (collection, items) => {
+  createItems: CreateItems<Collection> = async (collection, items) => {
     const chromaItems = await collection.object.add({
       ids: items.map((item) => item.id),
       embeddings: items.map((item) => item.embeddings),
@@ -45,7 +45,7 @@ export default class ChromaDBClient extends BaseVectorStoreClient<
     return;
   };
 
-  queryItems: QueryItems<ChromaDB.Collection> = async (
+  queryItems: QueryItems<Collection> = async (
     collection,
     query,
     where,

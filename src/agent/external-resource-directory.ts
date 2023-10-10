@@ -140,17 +140,20 @@ export default class ExternalResourceDirectory {
             });
           }
 
-          vectorStoreItems.push({
-            id: trimmedKey,
-            embeddings: embeddings[trimmedKey],
-            metadata: metadataMap[trimmedKey],
-          });
           embeddingsToStore.push({
             input: trimmedKey,
             vectors: JSON.stringify(embeddings[trimmedKey]),
             metadata_object_hash: metadataHashMap[trimmedKey],
           });
         }
+
+        vectorStoreItems.push({
+          id: trimmedKey,
+          embeddings:
+            embeddings[trimmedKey] ??
+            storedEmbeddings.find(({ input }) => input === trimmedKey)?.vectors,
+          metadata: metadataMap[trimmedKey],
+        });
       }
 
       // Store embeddings and create vector store items

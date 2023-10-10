@@ -5,6 +5,7 @@ import BaseVectorStoreClient, {
 } from "src/embeddings/vector-store/base";
 import VectraClient from "src/embeddings/vector-store/vectra";
 import ChromaDBClient from "~/embeddings/vector-store/chromadb";
+import { getConfig } from "~/utils/config";
 
 class VectorStore extends BaseVectorStoreClient<BaseVectorStoreClient<any>> {
   client: BaseVectorStoreClient<any, any>;
@@ -12,7 +13,7 @@ class VectorStore extends BaseVectorStoreClient<BaseVectorStoreClient<any>> {
   constructor() {
     super();
 
-    if (process.env.VECTOR_STORE === "chromadb") {
+    if (getConfig().VECTOR_STORE === "chromadb") {
       this.client = new ChromaDBClient({ path: "http://0.0.0.0:8000" });
     } else {
       this.client = new VectraClient();

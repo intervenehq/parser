@@ -5,7 +5,7 @@ import BaseChatCompletion, {
   GenerateChatCompletion,
   GenerateStructuredChatCompletion,
 } from "src/chat-completion/base";
-import zodToJsonSchema from "zod-to-json-schema";
+import { zodToJsonSchema } from "zod-to-json-schema";
 
 const MODELS = {
   [ChatCompletionModels.critical]: "gpt-4-0613",
