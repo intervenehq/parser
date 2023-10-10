@@ -4,7 +4,6 @@ import SwaggerParser from '@apidevtools/swagger-parser';
 import { JSONSchema7 } from 'json-schema';
 import { OpenAPI } from 'openapi-types';
 import { Options as OraOptions } from 'ora';
-
 import { cli } from 'src/cli';
 import CodeGen, { CodeGenLanguage } from '~/agent/code-gen';
 import ContextProcessor from '~/agent/context-processor';
@@ -183,7 +182,7 @@ export default class Parser {
         },
       });
 
-      cli.log("Narrowing down the keys that need to be sent...");
+      cli.log('Narrowing down the keys that need to be sent...');
 
       cli.info(
         JSON.stringify({
@@ -206,7 +205,7 @@ export default class Parser {
         },
       });
 
-      cli.log("Narrowing down the variables that go into the keys...");
+      cli.log('Narrowing down the variables that go into the keys...');
 
       cli.info(
         JSON.stringify({
@@ -252,9 +251,7 @@ export default class Parser {
       const outputPath = path.join(getCurrentDirectory(), '../../output.json');
       fs.writeFileSync(outputPath, finalOutput);
 
-      await cli.warn(
-        `Your output has been written to output.json in the project's root`,
-      );
+      await cli.warn(`Your output has been written to ${outputPath}`);
 
       return;
     }
