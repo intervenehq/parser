@@ -19,6 +19,7 @@ import { $deref, OperationObject } from '~/utils/openapi';
 import { getDefaultContentType } from '~/utils/openapi/content-type';
 import { dereferencePath } from '~/utils/openapi/dereference-path';
 import { t } from '~/utils/template';
+import { cli } from 'src/cli';
 
 export type ExternalResourcePath = string & {
   ____: never;
@@ -36,8 +37,8 @@ export default class ExternalResourceDirectory {
   }
 
   embed = async (api: OpenAPI.Document) => {
-    console.log('embed called with openapi');
-
+    cli.log('Embedding your OpenAPI spec...')
+    
     // <keywords>: [<api1>, <api2>]
     const pathMapping = new Map<string, Set<string>>();
     const collection = await vectorStore.findOrCreateCollection('openapi');
@@ -77,7 +78,7 @@ export default class ExternalResourceDirectory {
     // Process keys in batches
     await this.processKeysInBatches(pathMapping, api, collection);
 
-    console.log('All done with embedding, completed without errors.');
+    cli.log('All done with embedding, completed without errors.')
   };
 
   private async processKeysInBatches(
@@ -165,7 +166,7 @@ export default class ExternalResourceDirectory {
   }
 
   search = async (objective: string, providers: string[]) => {
-    console.log('search called with objective:', objective);
+    console.log('Search called with objective:', objective);
 
     const collection = await vectorStore.findOrCreateCollection('openapi');
     console.log('Collection created or fetched:', collection);
