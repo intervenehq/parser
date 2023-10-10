@@ -136,7 +136,7 @@ class CLI {
       type: "text",
       name: "OPENAI_API_KEY",
       message: "Please enter your OpenAI API key:",
-      initial: currentConfig?.OPENAI_KEY,
+      initial: currentConfig?.OPENAI_API_KEY,
     });
 
     const { VECTOR_STORE } = await prompts({
