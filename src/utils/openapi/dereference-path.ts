@@ -1,13 +1,13 @@
-import { OpenAPIV3, OpenAPIV2, OpenAPI } from "openapi-types";
+import { OpenAPI, OpenAPIV2, OpenAPIV3 } from 'openapi-types';
 
 let data: OpenAPIV3.Document;
 
 function findAllRefs(obj: any, refs: string[] = []): string[] {
-  if (typeof obj === "object" && obj !== null) {
+  if (typeof obj === 'object' && obj !== null) {
     for (const [k, v] of Object.entries(obj)) {
-      if (k === "$ref") {
+      if (k === '$ref') {
         refs.push(v as string);
-      } else if (typeof v === "object") {
+      } else if (typeof v === 'object') {
         findAllRefs(v, refs);
       }
     }
@@ -30,15 +30,15 @@ function removeCircularRefs(refs: Set<string>): void {
 }
 
 function substituteRef(obj: any, processed: Set<string> = new Set()): void {
-  if (typeof obj === "object" && obj !== null) {
+  if (typeof obj === 'object' && obj !== null) {
     const keysToDelete: string[] = [];
     for (const [key, value] of Object.entries(obj)) {
-      if (key === "$ref" && processed.has(value as string)) {
+      if (key === '$ref' && processed.has(value as string)) {
         keysToDelete.push(key);
-      } else if (key === "$ref" && !processed.has(value as string)) {
+      } else if (key === '$ref' && !processed.has(value as string)) {
         processed.add(value as string);
         substituteRef(getComponentByRef(value as string)[0], processed);
-      } else if (typeof value === "object") {
+      } else if (typeof value === 'object') {
         substituteRef(value, processed);
       }
     }
@@ -47,10 +47,10 @@ function substituteRef(obj: any, processed: Set<string> = new Set()): void {
 }
 
 function getComponentByRef(
-  ref: string
+  ref: string,
 ): [OpenAPIV3.SchemaObject | undefined | OpenAPIV3.ReferenceObject, string] {
   const components = data.components?.schemas || {};
-  const componentName = ref.split("/").pop() || "";
+  const componentName = ref.split('/').pop() || '';
   return [components[componentName], componentName];
 }
 
@@ -59,9 +59,9 @@ function replaceRef(obj: any): void {
     for (const item of obj) {
       replaceRef(item);
     }
-  } else if (typeof obj === "object" && obj !== null) {
+  } else if (typeof obj === 'object' && obj !== null) {
     for (const [key, value] of Object.entries(obj)) {
-      if (key === "$ref" && typeof value === "string") {
+      if (key === '$ref' && typeof value === 'string') {
         const [component] = getComponentByRef(value as string);
         if (component) {
           obj[key] = component;
@@ -80,12 +80,12 @@ function substituteRefsInPath(endpointPath: string): void {
 }
 
 function flattenRefs(d: any): any {
-  if (typeof d !== "object" || d === null) return d;
+  if (typeof d !== 'object' || d === null) return d;
 
-  if ("$ref" in d) return flattenRefs(d["$ref"]);
+  if ('$ref' in d) return flattenRefs(d['$ref']);
 
   for (const [key, value] of Object.entries(d)) {
-    if (typeof value === "object") {
+    if (typeof value === 'object') {
       d[key] = flattenRefs(value);
     }
   }
@@ -95,7 +95,7 @@ function flattenRefs(d: any): any {
 export function dereferencePath(
   jsonData: OpenAPI.Document,
   httpMethod: OpenAPIV2.HttpMethods,
-  endpointPath: string
+  endpointPath: string,
 ) {
   data = jsonData as OpenAPIV3.Document;
 

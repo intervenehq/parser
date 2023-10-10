@@ -1,58 +1,58 @@
-import SwaggerParser from "@apidevtools/swagger-parser";
-import { JSONSchema7 } from "json-schema";
+import fs from 'fs';
+import path from 'path';
+import SwaggerParser from '@apidevtools/swagger-parser';
+import chalk from 'chalk';
+import { JSONSchema7 } from 'json-schema';
+import { OpenAPI } from 'openapi-types';
+import { Options as OraOptions } from 'ora';
+import { cli } from 'src/cli';
+import CodeGen, { CodeGenLanguage } from '~/agent/code-gen';
+import ContextProcessor from '~/agent/context-processor';
+import ExternalResourceDirectory from '~/agent/external-resource-directory';
+import ExternalResourceEvaluator from '~/agent/external-resource-evaluator';
+import ChatCompletion from '~/chat-completion/index';
 
-import { OpenAPI } from "openapi-types";
-import ChatCompletion from "src/chat-completion";
-import CodeGen, { CodeGenLanguage } from "~/agent/code-gen";
-import ContextProcessor from "~/agent/context-processor";
-import ExternalResourceDirectory from "~/agent/external-resource-directory";
-import ExternalResourceEvaluator from "~/agent/external-resource-evaluator";
-import { stringifyContext } from "~/utils/context";
-import { dereferencePath } from "~/utils/openapi/dereference-path";
-import { operationSchemas } from "~/utils/openapi/operation";
-import { extractRequiredSchema } from "~/utils/openapi/required-schema";
-import { t } from "~/utils/template";
-import { Options as OraOptions } from "ora";
-import { cli } from "src/cli";
-import chalk from "chalk";
-import path from "path";
-import fs from "fs";
-import { getCurrentDirectory } from "~/utils/current-directory";
+import { stringifyContext } from '~/utils/context';
+import { getCurrentDirectory } from '~/utils/current-directory';
+import { dereferencePath } from '~/utils/openapi/dereference-path';
+import { operationSchemas } from '~/utils/openapi/operation';
+import { extractRequiredSchema } from '~/utils/openapi/required-schema';
+import { t } from '~/utils/template';
 
 export const objectivePrefix = (
-  params: Pick<OperationMetdata, "objective" | "context">,
-  withContext = true
+  params: Pick<OperationMetdata, 'objective' | 'context'>,
+  withContext = true,
 ) =>
   t(
     [
       "I have this objective: '''{{objective}}'''",
-      "{{#if showContext}}I also have some contextual data, think of these as variables that can be used to achieve the given objective.",
-      "This context is represented as the following JSON schema:",
-      "```{{context}}```{{/if}}",
+      '{{#if showContext}}I also have some contextual data, think of these as variables that can be used to achieve the given objective.',
+      'This context is represented as the following JSON schema:',
+      '```{{context}}```{{/if}}',
     ],
     {
       ...params,
       context: stringifyContext(params.context),
       showContext: withContext && !!Object.keys(params.context).length,
-    }
+    },
   );
 
 export const operationPrefix = (
   params: Pick<
     OperationMetdata,
-    "provider" | "path" | "method" | "description"
+    'provider' | 'path' | 'method' | 'description'
   >,
-  skipFirstLine = false
+  skipFirstLine = false,
 ) =>
   t(
     [
-      skipFirstLine ? "" : "I have decided to call this external resource:",
-      "Provider: {{provider}}",
-      "HTTP path: {{path}}",
-      "HTTP method: {{method}}",
-      "{{#if description}}description: {{description}}{{/if}}",
+      skipFirstLine ? '' : 'I have decided to call this external resource:',
+      'Provider: {{provider}}',
+      'HTTP path: {{path}}',
+      'HTTP method: {{method}}',
+      '{{#if description}}description: {{description}}{{/if}}',
     ],
-    params
+    params,
   );
 
 export interface OperationMetdata {
@@ -84,7 +84,7 @@ export default class Parser {
 
   constructor(
     loggable: Loggable = cli,
-    language: CodeGenLanguage = CodeGenLanguage.javascript
+    language: CodeGenLanguage = CodeGenLanguage.javascript,
   ) {
     this.externalResourceDirectory = new ExternalResourceDirectory(this);
     this.externalResourceEvaluator = new ExternalResourceEvaluator(this);
@@ -98,11 +98,11 @@ export default class Parser {
   parse = async (
     objective: string,
     context: Record<string, JSONSchema7>,
-    openapiPaths: string[]
+    openapiPaths: string[],
   ) => {
     const openapis: OpenAPI.Document[] = [];
     for (const openapiPath of openapiPaths) {
-      const contents = JSON.parse(fs.readFileSync(openapiPath, "utf8"));
+      const contents = JSON.parse(fs.readFileSync(openapiPath, 'utf8'));
       const openapi = await SwaggerParser.parse(contents);
 
       openapis.push(openapi);
@@ -112,10 +112,10 @@ export default class Parser {
     const shortlist = await this.externalResourceDirectory.shortlist(
       objective,
       context,
-      openapis
+      openapis,
     );
 
-    cli.info("Shortlist: \n");
+    cli.info('Shortlist: \n');
     console.log(shortlist);
 
     for (const api of shortlist) {
@@ -158,12 +158,12 @@ export default class Parser {
         cli.error(
           "chosen API is not feasible, moving on to the next API. reason: '" +
             reason +
-            "'"
+            "'",
         );
         continue;
       }
 
-      cli.log("Chosen API is feasible, evaluating it further.");
+      cli.log('Chosen API is feasible, evaluating it further.');
 
       const {
         body: filteredBodySchema,
@@ -190,7 +190,7 @@ export default class Parser {
           body: filteredBodySchema,
           query: filteredQuerySchema,
           path: filteredPathSchema,
-        })
+        }),
       );
 
       const {
@@ -213,28 +213,28 @@ export default class Parser {
           body: filteredContextForBody,
           query: filteredContextForQuery,
           path: filteredContextForPath,
-        })
+        }),
       );
 
       const bodyParams = await this.codeGen.generateInput({
         ...operationMetadata,
         inputSchema: filteredBodySchema,
         filteredContext: filteredContextForBody,
-        name: "body",
+        name: 'body',
       });
 
       const queryParams = await this.codeGen.generateInput({
         ...operationMetadata,
         inputSchema: filteredQuerySchema,
         filteredContext: filteredContextForQuery,
-        name: "query",
+        name: 'query',
       });
 
       const pathParams = await this.codeGen.generateInput({
         ...operationMetadata,
         inputSchema: filteredPathSchema,
         filteredContext: filteredContextForPath,
-        name: "path",
+        name: 'path',
       });
 
       const finalOutput = JSON.stringify({
@@ -249,11 +249,11 @@ export default class Parser {
         responseSchema,
       });
 
-      const outputPath = path.join(getCurrentDirectory(), "../../output.json");
+      const outputPath = path.join(getCurrentDirectory(), '../../output.json');
       fs.writeFileSync(outputPath, finalOutput);
 
       await cli.warn(
-        `Your output has been written to output.json in the project's root`
+        `Your output has been written to output.json in the project's root`,
       );
 
       return;

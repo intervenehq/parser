@@ -1,16 +1,17 @@
-import { JSONSchema7 } from "json-schema";
-import { ChatCompletionModels } from "src/chat-completion/base";
-import Zod from "zod";
+import { JSONSchema7 } from 'json-schema';
+import Zod from 'zod';
 import Parser, {
-  OperationMetdata,
   objectivePrefix,
+  OperationMetdata,
   operationPrefix,
-} from "~/agent/index";
-import { stringifyContext } from "~/utils/context";
-import { chunkSchema, getSubSchema } from "~/utils/openapi/chunk-schema";
-import { deepenSchema } from "~/utils/openapi/deepen-schema";
-import { mergeSchema } from "~/utils/openapi/merge-schema";
-import { t } from "~/utils/template";
+} from '~/agent/index';
+import { ChatCompletionModels } from '~/chat-completion/base';
+
+import { stringifyContext } from '~/utils/context';
+import { chunkSchema, getSubSchema } from '~/utils/openapi/chunk-schema';
+import { deepenSchema } from '~/utils/openapi/deepen-schema';
+import { mergeSchema } from '~/utils/openapi/merge-schema';
+import { t } from '~/utils/template';
 
 export default class ExternalResourceEvaluator {
   private parser: Parser;
@@ -26,26 +27,26 @@ export default class ExternalResourceEvaluator {
         query?: JSONSchema7;
         path?: JSONSchema7;
       };
-    }
+    },
   ) {
     const message = t(
       [
         ...objectivePrefix(params),
-        "I want to check feasibility of the following external resource to achieve the objective:",
+        'I want to check feasibility of the following external resource to achieve the objective:',
         ...operationPrefix(params, true),
-        "{{#if bodySchema}}body schema: {{bodySchema}}{{/if}}",
-        "{{#if querySchema}}query params schema: {{querySchema}}{{/if}}",
-        "{{#if pathSchema}}path params schema: {{pathSchema}}{{/if}}",
-        "Did I pick an inappropriate external resource for the job?",
-        "The schemas provided are partial. The description provided will not convey full meaning.",
-        "This is preliminary feasibility check, you will have access to more data later - keep it loose",
+        '{{#if bodySchema}}body schema: {{bodySchema}}{{/if}}',
+        '{{#if querySchema}}query params schema: {{querySchema}}{{/if}}',
+        '{{#if pathSchema}}path params schema: {{pathSchema}}{{/if}}',
+        'Did I pick an inappropriate external resource for the job?',
+        'The schemas provided are partial. The description provided will not convey full meaning.',
+        'This is preliminary feasibility check, you will have access to more data later - keep it loose',
       ],
       {
         bodySchema: JSON.stringify(params.requiredInputSchema.body),
         querySchema: JSON.stringify(params.requiredInputSchema.query),
         pathSchema: JSON.stringify(params.requiredInputSchema.path),
         context: stringifyContext(params.context),
-      }
+      },
     );
 
     const { is_this_the_right_external_resource, reason } =
@@ -54,18 +55,18 @@ export default class ExternalResourceEvaluator {
         messages: [
           {
             content: message,
-            role: "user",
+            role: 'user',
           },
         ],
-        generatorName: "did_the_user_pick_inappropriate_external_resource",
+        generatorName: 'did_the_user_pick_inappropriate_external_resource',
         generatorDescription:
-          "Did the user pick the inappropriate external resource?",
+          'Did the user pick the inappropriate external resource?',
         generatorOutputSchema: Zod.object({
           is_this_the_right_external_resource: Zod.boolean().describe(
-            "true if the chosen resource is inappropriate, false if it is appropriate"
+            'true if the chosen resource is inappropriate, false if it is appropriate',
           ),
           reason: Zod.string()
-            .describe("reason why the resource is not correct")
+            .describe('reason why the resource is not correct')
             .min(10),
         }),
       });
@@ -85,7 +86,7 @@ export default class ExternalResourceEvaluator {
         query?: JSONSchema7;
         path?: JSONSchema7;
       };
-    }
+    },
   ) {
     return {
       body: await this.filterInputSchema({
@@ -110,7 +111,7 @@ export default class ExternalResourceEvaluator {
     params: OperationMetdata & {
       requiredInputSchema?: JSONSchema7;
       inputSchema?: JSONSchema7;
-    }
+    },
   ) {
     let filteredSchema = params.requiredInputSchema ?? {};
     const chunks = chunkSchema(params.inputSchema ?? {});
@@ -120,32 +121,32 @@ export default class ExternalResourceEvaluator {
         {
           messages: [
             {
-              role: "user",
+              role: 'user',
               content: t(
                 [
                   ...objectivePrefix(params),
                   ...operationPrefix(params),
-                  "And I came up with this input to the resource:",
-                  "```{{filteredSchema}}```",
-                  "Your task is to shortlist properties that may be relevant to achieve the objective.",
-                  "You must choose from the following JSONSchema:",
-                  "```{{chunkSchema}}```",
+                  'And I came up with this input to the resource:',
+                  '```{{filteredSchema}}```',
+                  'Your task is to shortlist properties that may be relevant to achieve the objective.',
+                  'You must choose from the following JSONSchema:',
+                  '```{{chunkSchema}}```',
                 ],
                 {
                   filteredSchema: JSON.stringify(filteredSchema),
                   chunkSchema: JSON.stringify(chunkSchema),
-                }
+                },
               ),
             },
           ],
-          generatorName: "shortlist_properties",
+          generatorName: 'shortlist_properties',
           generatorDescription:
-            "Shortlist properties that are relevant given the objective",
+            'Shortlist properties that are relevant given the objective',
           generatorOutputSchema: Zod.object({
             shortlist: Zod.array(Zod.enum(propertyNames as [string])),
           }),
           model: ChatCompletionModels.critical,
-        }
+        },
       );
 
       const subSchema = getSubSchema(chunkSchema, shortlist);

@@ -1,11 +1,12 @@
+import { ChromaClient, Collection } from 'chromadb/dist/main';
+import VectorStoreCollection from '~/embeddings/Collection';
+import VectorStoreItem from '~/embeddings/Item';
+
 import BaseVectorStoreClient, {
   CreateItems,
   FindOrCreateCollection,
   QueryItems,
-} from "./base";
-import { ChromaClient, Collection } from "chromadb/dist/main";
-import VectorStoreCollection from "src/embeddings/Collection";
-import VectorStoreItem from "src/embeddings/Item";
+} from './base';
 
 export default class ChromaDBClient extends BaseVectorStoreClient<
   ChromaClient,
@@ -24,7 +25,7 @@ export default class ChromaDBClient extends BaseVectorStoreClient<
   }
 
   findOrCreateCollection: FindOrCreateCollection<Collection> = async (
-    name: string
+    name: string,
   ) => {
     const collection = await this.client.getOrCreateCollection({ name });
 
@@ -49,12 +50,12 @@ export default class ChromaDBClient extends BaseVectorStoreClient<
     collection,
     query,
     where,
-    limit = 10
+    limit = 10,
   ) => {
     const result = await collection.object.query({
       queryEmbeddings: query,
       nResults: limit,
-      include: ["embeddings", "metadatas", "distances"] as any,
+      include: ['embeddings', 'metadatas', 'distances'] as any,
       where,
     });
 

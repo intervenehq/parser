@@ -1,17 +1,18 @@
-import { encode } from "gpt-3-encoder";
-import { JSONSchema7 } from "json-schema";
-import cloneDeep from "lodash/cloneDeep";
-import { shallowSchema } from "~/utils/openapi/deepen-schema";
+import { encode } from 'gpt-3-encoder';
+import { JSONSchema7 } from 'json-schema';
+import cloneDeep from 'lodash/cloneDeep';
+
+import { shallowSchema } from '~/utils/openapi/deepen-schema';
 
 function chunkSchema(
   schema: JSONSchema7,
   chunkRequiredProperties = false,
-  tokenLimit = 4000
+  tokenLimit = 4000,
 ) {
   if (
     !schema.type ||
     Array.isArray(schema.type) ||
-    !["array", "object"].includes(schema.type)
+    !['array', 'object'].includes(schema.type)
   ) {
     return [{ propertyNames: [], schema }];
   }
@@ -23,11 +24,11 @@ function chunkSchema(
     schema: JSONSchema7;
   }[] = [];
 
-  if (schema.type === "object") {
+  if (schema.type === 'object') {
     const { chunks } = chunkProperties(
       schema,
       chunkRequiredProperties,
-      tokenLimit
+      tokenLimit,
     );
 
     chunks.map((chunk) => {
@@ -36,11 +37,11 @@ function chunkSchema(
         schema: { ...metadata, properties: chunk },
       });
     });
-  } else if (!Array.isArray(schema.items) && typeof schema.items === "object") {
+  } else if (!Array.isArray(schema.items) && typeof schema.items === 'object') {
     const { chunks } = chunkProperties(
       schema.items,
       chunkRequiredProperties,
-      tokenLimit
+      tokenLimit,
     );
 
     const itemMetadata = shallowSchema(schema.items);
@@ -65,25 +66,25 @@ function chunkSchema(
 function chunkProperties(
   objectSchema: JSONSchema7,
   chunkRequiredProperties = false,
-  tokenLimit = 4000
+  tokenLimit = 4000,
 ): {
-  required: JSONSchema7["properties"];
-  chunks: NonNullable<JSONSchema7["properties"]>[];
+  required: JSONSchema7['properties'];
+  chunks: NonNullable<JSONSchema7['properties']>[];
 } {
-  if (objectSchema.type !== "object")
+  if (objectSchema.type !== 'object')
     return { required: objectSchema.properties, chunks: [] };
 
-  const chunks: NonNullable<JSONSchema7["properties"]>[] = [];
-  let requiredProperties: JSONSchema7["properties"];
+  const chunks: NonNullable<JSONSchema7['properties']>[] = [];
+  let requiredProperties: JSONSchema7['properties'];
   const { properties, required } = objectSchema;
 
   let currLength = 0;
-  let curr: JSONSchema7["properties"] | undefined;
+  let curr: JSONSchema7['properties'] | undefined;
 
   for (const propertyName in properties) {
     const property = properties[propertyName]!;
 
-    if (typeof property === "boolean") continue;
+    if (typeof property === 'boolean') continue;
 
     const propertyMetadata = shallowSchema(property);
     if (!chunkRequiredProperties && !!required?.includes(propertyName)) {
@@ -114,7 +115,7 @@ function chunkProperties(
 }
 
 function tokenizedLength(property: JSONSchema7) {
-  if (typeof property === "boolean") return 1;
+  if (typeof property === 'boolean') return 1;
 
   const output = JSON.stringify(property);
   return encode(output).length;
@@ -123,15 +124,15 @@ function tokenizedLength(property: JSONSchema7) {
 function getSubSchema(schema: JSONSchema7, properties: string[]) {
   const subSchema: JSONSchema7 = cloneDeep(schema);
 
-  if (schema.type === "object") {
+  if (schema.type === 'object') {
     subSchema.properties = {};
 
     for (const propertyName of properties) {
       subSchema.properties[propertyName] = schema.properties![propertyName]!;
     }
   } else if (
-    schema.type === "array" &&
-    typeof schema.items === "object" &&
+    schema.type === 'array' &&
+    typeof schema.items === 'object' &&
     !Array.isArray(schema.items)
   ) {
     subSchema.items = getSubSchema(schema.items, properties);

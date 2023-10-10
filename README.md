@@ -9,7 +9,9 @@
 Parser to translate a natural language query into an actionable piece of code.
 
 Here's a quick demo:
-<video src="public/video/demo.mov" width="500" height="300">
+
+https://github.com/tryintervene/parser/assets/32911377/6809b796-638e-41dc-aa75-6d3465d76988
+
 
 ## Problem
 

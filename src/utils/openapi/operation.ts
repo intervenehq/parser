@@ -1,20 +1,21 @@
-import { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
-import { JSONSchema7 } from "json-schema";
-import { $deref, OperationObject } from "~/utils/openapi";
-import cloneDeep from "lodash/cloneDeep";
-import { getDefaultContentType } from "~/utils/openapi/content-type";
+import { JSONSchema7 } from 'json-schema';
+import cloneDeep from 'lodash/cloneDeep';
+import { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types';
+
+import { $deref, OperationObject } from '~/utils/openapi';
+import { getDefaultContentType } from '~/utils/openapi/content-type';
 
 function operationSchemas(operationObject: OperationObject) {
   const parameters = $deref(operationObject.parameters) ?? [];
   const requestBody =
-    "requestBody" in operationObject
+    'requestBody' in operationObject
       ? $deref(operationObject.requestBody)
       : undefined;
   const successResponse = $deref(
-    operationObject.responses?.["200"] ??
-      operationObject.responses?.["201"] ??
-      operationObject.responses?.["204"] ??
-      operationObject.responses?.default
+    operationObject.responses?.['200'] ??
+      operationObject.responses?.['201'] ??
+      operationObject.responses?.['204'] ??
+      operationObject.responses?.default,
   );
 
   let querySchema: JSONSchema7 | undefined;
@@ -29,19 +30,19 @@ function operationSchemas(operationObject: OperationObject) {
   for (const $parameter of parameters) {
     const parameter = $deref($parameter);
     switch (parameter.in) {
-      case "query":
+      case 'query':
         querySchema = appendParameterToSchema(querySchema, parameter);
         break;
-      case "path":
+      case 'path':
         pathSchema = appendParameterToSchema(pathSchema, parameter);
         break;
-      case "header":
+      case 'header':
         headerSchema = appendParameterToSchema(headerSchema, parameter);
         break;
-      case "cookie":
+      case 'cookie':
         cookieSchema = appendParameterToSchema(cookieSchema, parameter);
         break;
-      case "body":
+      case 'body':
         bodySchema = appendParameterToSchema(bodySchema, parameter);
         break;
     }
@@ -49,17 +50,17 @@ function operationSchemas(operationObject: OperationObject) {
 
   if (requestBody) {
     requestContentType = getDefaultContentType(
-      Object.keys(requestBody.content)
+      Object.keys(requestBody.content),
     );
     bodySchema = requestBody.content[requestContentType]!.schema as JSONSchema7;
   }
 
   if (successResponse) {
-    if ("schema" in successResponse) {
+    if ('schema' in successResponse) {
       responseSchema = successResponse.schema as JSONSchema7;
-    } else if ("content" in successResponse) {
+    } else if ('content' in successResponse) {
       responseContentType = getDefaultContentType(
-        Object.keys(successResponse.content ?? {})
+        Object.keys(successResponse.content ?? {}),
       );
       responseSchema = successResponse.content?.[responseContentType]
         ?.schema as JSONSchema7;
@@ -83,10 +84,10 @@ function operationSchemas(operationObject: OperationObject) {
  */
 function appendParameterToSchema(
   $schema: JSONSchema7 | undefined,
-  parameter: OpenAPIV2.ParameterObject | OpenAPIV3.ParameterObject
+  parameter: OpenAPIV2.ParameterObject | OpenAPIV3.ParameterObject,
 ) {
   const schema = cloneDeep($schema) ?? {
-    type: "object",
+    type: 'object',
     required: [],
     title: `${parameter.in} parameters to be sent with the HTTP request`,
   };
