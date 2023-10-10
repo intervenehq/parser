@@ -9,7 +9,7 @@
 Parser to translate a natural language query into an actionable piece of code.
 
 Here's a quick demo:
-<video src="public/video//demo.mov" width="500" height="300">
+<video src="public/video/demo.mov" width="500" height="300">
 
 ## Problem
 
