@@ -211,7 +211,7 @@ export default class ExternalResourceDirectory {
     const matches = await this.search(objective, providers);
     const matchDetails: {
       provider: string;
-      method: string;
+      method: OpenAPIV2.HttpMethods;
       path: string;
       description: string;
     }[] = [];
