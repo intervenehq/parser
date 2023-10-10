@@ -19,6 +19,14 @@ A customer can only be got through a customerId, and if supplied an email, multi
 
 You can follow the guide to install dependencies and try the tool via our CLI.
 
+If you don't have bun, you can install it with
+
+```bash
+npm i -g bun
+```
+
+or follow their [installation](https://bun.sh/docs/installation) page for more details.
+
 To install dependencies:
 
 ```bash
@@ -29,7 +37,7 @@ bun install
 
 To use the CLI, run commands using the following syntax:
 
-bun src/cli.ts [command-name]
+bun src/cli/run.ts [command-name]
 
 ### Configure Command
 
@@ -43,17 +51,17 @@ Follow the prompts to input or update the keys.
 
 ### Parse Command
 
-This command lets you parse a natural language query and load a set of OpenAPI specs for further use.
+This command lets you parse a natural language query and give you an appropriate command. The OpenAPI spec augments the LLM's knowledge on the specific API providers needed for the task.
 
 ```bash
-bun src/cli/run.ts parse "[Your natural language query here]" -f "/path/to/file1.json,/path/to/file2.json"
+bun src/cli/run.ts parse "[Your natural language query here]" "/path/to/file1.json,/path/to/file2.json"
 ```
 
 The first argument is your natural language query.
-Use the -f option followed by a comma-separated list of OpenAPI spec files' paths that you want to load.
+The second argument is a comma-separated list of OpenAPI spec files' paths that you want to load.
 
 For example:
 
 ```bash
-bun src/cli/run.ts parse "Fetch customer details from Stripe" -f "./specs/stripe.json"
+bun src/cli/run.ts parse "Fetch customer details from Stripe" "./specs/stripe.json"
 ```
