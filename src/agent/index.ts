@@ -102,7 +102,7 @@ export default class Parser {
   ) => {
     const openapis: OpenAPI.Document[] = [];
     for (const openapiPath of openapiPaths) {
-      const contents = JSON.parse(await fs.readFile(openapiPath, "utf8"));
+      const contents = JSON.parse(fs.readFileSync(openapiPath, "utf8"));
       const openapi = await SwaggerParser.parse(contents);
 
       openapis.push(openapi);
@@ -244,7 +244,7 @@ export default class Parser {
       const outputPath = path.join(getCurrentDirectory(), "../../output.json");
       fs.writeFileSync(outputPath, finalOutput);
 
-      cli.log(
+      await cli.warn(
         `Your output has been written to output.json in the project's root`
       );
 

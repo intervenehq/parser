@@ -79,19 +79,20 @@ class CLI {
   }
 
   async log(...text: string[]) {
-    chalk.green(...text);
+    console.log(chalk.green(...text));
   }
 
   async info(...text: string[]) {
-    chalk.white(...text);
+    console.log(chalk.white(...text));
   }
 
   async warn(...text: string[]) {
-    chalk.yellow(...text);
+    console.log(chalk.yellow(...text));
   }
 
   async error(...text: string[]) {
-    chalk.red(...text);
+    console.log(chalk.red(...text));
+
     const actionName = this.currentAction?.name();
 
     const url = newGithubIssueUrl({
