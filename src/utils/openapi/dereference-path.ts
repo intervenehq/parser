@@ -1,4 +1,4 @@
-import { OpenAPIV3 } from "openapi-types";
+import { OpenAPIV3, OpenAPIV2 } from "openapi-types";
 
 let data: OpenAPIV3.Document;
 
@@ -100,7 +100,7 @@ function flattenRefs(d: any): any {
 
 export function dereferencePath(
   jsonData: OpenAPIV3.Document,
-  httpMethod: keyof OpenAPIV3.PathItemObject,
+  httpMethod: OpenAPIV2.HttpMethods,
   endpointPath: string
 ) {
   data = jsonData;

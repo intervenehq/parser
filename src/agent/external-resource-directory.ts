@@ -42,7 +42,7 @@ export default class ExternalResourceDirectory {
         const operationObject = $deref(
           dereferencePath(
             api as OpenAPIV3.Document,
-            httpMethod as keyof OpenAPIV3.PathItemObject,
+            httpMethod as OpenAPIV2.HttpMethods,
             path
           ) as
             | OpenAPIV2.OperationObject
