@@ -1,10 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import SwaggerParser from '@apidevtools/swagger-parser';
-import chalk from 'chalk';
 import { JSONSchema7 } from 'json-schema';
 import { OpenAPI } from 'openapi-types';
 import { Options as OraOptions } from 'ora';
+
 import { cli } from 'src/cli';
 import CodeGen, { CodeGenLanguage } from '~/agent/code-gen';
 import ContextProcessor from '~/agent/context-processor';

@@ -11,6 +11,8 @@ module.exports = {
   importOrder: [
     '<BUILTIN_MODULES>', // Node.js built-in modules
     '<THIRD_PARTY_MODULES>',
+    '',
+    '^src/(.*)$',
     '^~/embeddings/(.*)$',
     '^~/agent/(.*)$',
     '^~/chat-completion/(.*)$',

@@ -1,4 +1,5 @@
 import { Collection } from 'chromadb';
+
 import VectorStoreItem, { IVectorStoreItem } from '~/embeddings/Item';
 
 import VectorStoreCollection from '../Collection';

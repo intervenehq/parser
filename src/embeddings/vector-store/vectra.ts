@@ -1,5 +1,6 @@
 import path from 'path';
 import { IndexItem, LocalIndex } from 'vectra';
+
 import VectorStoreCollection from '~/embeddings/Collection';
 import VectorStoreItem from '~/embeddings/Item';
 

@@ -1,4 +1,5 @@
 import { Index, Pinecone } from '@pinecone-database/pinecone';
+
 import VectorStoreCollection from '~/embeddings/Collection';
 import VectorStoreItem, { ItemMetadata } from '~/embeddings/Item';
 

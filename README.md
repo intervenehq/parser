@@ -12,7 +12,6 @@ Here's a quick demo:
 
 https://github.com/tryintervene/parser/assets/32911377/6809b796-638e-41dc-aa75-6d3465d76988
 
-
 ## Problem
 
 GPT4 currently hallucinates more often than not when dealing with APIs.

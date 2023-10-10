@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import newGithubIssueUrl from 'new-github-issue-url';
 import ora, { Ora, Options as OraOptions } from 'ora';
 import prompts from 'prompts';
+
 import { CodeGenLanguage } from '~/agent/code-gen';
 import Parser from '~/agent/index';
 

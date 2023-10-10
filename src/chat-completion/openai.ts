@@ -1,6 +1,7 @@
 import { ChatCompletionCreateParamsBase } from 'node_modules/openai/resources/chat/completions';
 import OpenAI, { ClientOptions } from 'openai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+
 import BaseChatCompletion, {
   ChatCompletionModels,
   GenerateChatCompletion,

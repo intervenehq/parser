@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+
 import { EmbeddingFunction } from '~/embeddings/functions';
 
 import { getConfig } from '~/utils/config';
