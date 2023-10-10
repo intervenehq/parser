@@ -7,6 +7,7 @@ import Parser, {
   operationPrefix,
 } from '~/agent/index';
 import { ChatCompletionModels } from '~/chat-completion/base';
+import { writeToPromptsFile } from '~/utils/helpers';
 
 import { chunkSchema, getSubSchema } from '~/utils/openapi/chunk-schema';
 import { deepenSchema, shallowSchema } from '~/utils/openapi/deepen-schema';
@@ -87,28 +88,32 @@ export default class ContextProcessor {
           continue;
         }
 
+        const message = t(
+          [
+            objectivePrefix(params, false),
+            operationPrefix(params),
+            'And I came up with this input JSON schema to the resource:',
+            '```{{inputSchema}}```',
+            'Here is a JSON schema of a variable named `{{key}}`:',
+            '```{{chunkSchema}}```',
+            "Your task is to shortlist a conservative set of properties from {{key}}'s" +
+              ' JSON schema which may be relevant to generate an input compliant to the input schema.',
+          ],
+          {
+            inputSchema: JSON.stringify(params.inputSchema),
+            key,
+            chunkSchema: JSON.stringify(params.inputSchema),
+          },
+        )
+
+        writeToPromptsFile(message);
+
         const { shortlist } =
           await this.parser.chatCompletion.generateStructured({
             messages: [
               {
                 role: 'user',
-                content: t(
-                  [
-                    objectivePrefix(params, false),
-                    operationPrefix(params),
-                    'And I came up with this input JSON schema to the resource:',
-                    '```{{inputSchema}}```',
-                    'Here is a JSON schema of a variable named `{{key}}`:',
-                    '```{{chunkSchema}}```',
-                    "Your task is to shortlist a conservative set of properties from {{key}}'s" +
-                      ' JSON schema which may be relevant to generate an input compliant to the input schema.',
-                  ],
-                  {
-                    inputSchema: JSON.stringify(params.inputSchema),
-                    key,
-                    chunkSchema: JSON.stringify(params.inputSchema),
-                  },
-                ),
+                content: message,
               },
             ],
             generatorName: 'shortlist_properties',

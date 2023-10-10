@@ -13,6 +13,7 @@ import {
 import { stringifyContext } from '~/utils/context';
 import { shallowSchema } from '~/utils/openapi/deepen-schema';
 import { t } from '~/utils/template';
+import { writeToPromptsFile } from '~/utils/helpers';
 
 export enum CodeGenLanguage {
   javascript = 'javascript',
@@ -98,6 +99,9 @@ export default class CodeGen {
         language: this.language,
       },
     );
+
+
+    writeToPromptsFile(message);
 
     const messages: IChatCompletionMessage[] = [
       {

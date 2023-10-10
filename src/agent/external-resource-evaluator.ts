@@ -120,26 +120,29 @@ export default class ExternalResourceEvaluator {
     const chunks = chunkSchema(params.inputSchema ?? {});
 
     for (const { schema: chunkSchema, propertyNames } of chunks) {
+      const message = t(
+        [
+          objectivePrefix(params, false),
+          operationPrefix(params),
+          'And I came up with this input to the resource:',
+          '```{{filteredSchema}}```',
+          'Your task is to shortlist properties that may be relevant to achieve the objective.',
+          'You must choose from the following JSONSchema:',
+          '```{{chunkSchema}}```',
+        ],
+        {
+          filteredSchema: JSON.stringify(filteredSchema),
+          chunkSchema: JSON.stringify(chunkSchema),
+        },
+      );
+
+
       const { shortlist } = await this.parser.chatCompletion.generateStructured(
         {
           messages: [
             {
               role: 'user',
-              content: t(
-                [
-                  objectivePrefix(params, false),
-                  operationPrefix(params),
-                  'And I came up with this input to the resource:',
-                  '```{{filteredSchema}}```',
-                  'Your task is to shortlist properties that may be relevant to achieve the objective.',
-                  'You must choose from the following JSONSchema:',
-                  '```{{chunkSchema}}```',
-                ],
-                {
-                  filteredSchema: JSON.stringify(filteredSchema),
-                  chunkSchema: JSON.stringify(chunkSchema),
-                },
-              ),
+              content: message,
             },
           ],
           generatorName: 'shortlist_properties',
