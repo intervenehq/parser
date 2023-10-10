@@ -2,6 +2,9 @@
   "name": "intervene-parser",
   "module": "src/index.ts",
   "version": "0.0.1",
+  "scripts": {
+    "cli": "pnpm tsx ./src/cli/run.ts"
+  },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
     "@ianvs/prettier-plugin-sort-imports": "^4.1.0",

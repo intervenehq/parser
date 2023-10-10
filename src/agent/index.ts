@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import SwaggerParser from '@apidevtools/swagger-parser';
-import ChatCompletion from '~/chat-completion';
 import chalk from 'chalk';
 import { JSONSchema7 } from 'json-schema';
 import { OpenAPI } from 'openapi-types';
@@ -11,6 +10,7 @@ import CodeGen, { CodeGenLanguage } from '~/agent/code-gen';
 import ContextProcessor from '~/agent/context-processor';
 import ExternalResourceDirectory from '~/agent/external-resource-directory';
 import ExternalResourceEvaluator from '~/agent/external-resource-evaluator';
+import ChatCompletion from '~/chat-completion/index';
 
 import { stringifyContext } from '~/utils/context';
 import { getCurrentDirectory } from '~/utils/current-directory';
