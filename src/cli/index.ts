@@ -161,6 +161,7 @@ class CLI {
     options: { language: CodeGenLanguage; context: string }
   ) {
     const files = ($files ?? "").split(",");
+    process.env = { ...(await readConfig()) };
 
     let context = {};
     try {
