@@ -1,13 +1,16 @@
 import { JSONSchema7 } from "json-schema";
-import { cloneDeep, compact, flatten, omit } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
+import compact from "lodash/compact";
+import flatten from "lodash/flatten";
+import omit from "lodash/omit";
 
 function deepenSchema(
   fullSchema: JSONSchema7,
-  filteredShallowSchema: JSONSchema7,
+  filteredShallowSchema: JSONSchema7
 ) {
   if (fullSchema.type !== filteredShallowSchema.type)
     throw `fullSchema and filteredShallowSchema need to be of the same type, got ${JSON.stringify(
-      fullSchema.type,
+      fullSchema.type
     )} and ${JSON.stringify(filteredShallowSchema.type)}`;
 
   let deepenedSchema = cloneDeep(filteredShallowSchema);
@@ -23,7 +26,7 @@ function deepenSchema(
     ) {
       deepenedSchema.items = deepenSchema(
         fullSchema.items,
-        filteredShallowSchema.items,
+        filteredShallowSchema.items
       );
     }
 
@@ -31,9 +34,9 @@ function deepenSchema(
       deepenedSchema.required = Array.from(
         new Set(
           flatten(
-            compact([fullSchema.required, filteredShallowSchema.required]),
-          ),
-        ),
+            compact([fullSchema.required, filteredShallowSchema.required])
+          )
+        )
       );
       deepenedSchema.properties = {
         ...fullSchema.properties,

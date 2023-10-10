@@ -1,17 +1,22 @@
 import { JSONSchema7 } from "json-schema";
-import { compact, intersection } from "lodash";
+import compact from "lodash/compact";
+import intersection from "lodash/intersection";
 import { encode } from "gpt-3-encoder";
 import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
 import vectorStore from "src/embeddings/vector-store";
 import { IVectorStoreItem } from "~/embeddings/Item";
 import { createEmbeddings } from "~/embeddings/index";
-import { $deref } from "~/utils/openapi";
+import { $deref, OperationObject } from "~/utils/openapi";
 import { getDefaultContentType } from "~/utils/openapi/content-type";
 import { dereferencePath } from "~/utils/openapi/dereference-path";
 import { ChatCompletionModels } from "src/chat-completion/base";
 import { t } from "~/utils/template";
 import Parser, { objectivePrefix } from "~/agent/index";
 import Zod from "zod";
+import EmbeddingStore from "~/embeddings/Store";
+import objecthash from "object-hash";
+import VectorStoreCollection from "~/embeddings/Collection";
+import { EmbeddingsTable } from "~/utils/kysley";
 
 export type ExternalResourcePath = string & {
   ____: never;
@@ -21,18 +26,23 @@ export type ExternalResourcePath = string & {
 
 export default class ExternalResourceDirectory {
   private parser: Parser;
+  private embeddingStore: EmbeddingStore;
 
   constructor(parser: Parser) {
     this.parser = parser;
+    this.embeddingStore = new EmbeddingStore();
   }
 
   embed = async (api: OpenAPI.Document) => {
     console.log("embed called with openapi");
 
-    const mappings = new Map<string, Set<string>>();
+    // <keywords>: [<api1>, <api2>]
+    const pathMapping = new Map<string, Set<string>>();
     const collection = await vectorStore.findOrCreateCollection("openapi");
 
+    // Iterate over all paths in the API
     for (const path in api.paths) {
+      // Iterate over all HTTP methods for the current path
       for (const httpMethod of intersection(
         Object.values(OpenAPIV2.HttpMethods),
         Object.keys(api.paths[path]!)
@@ -44,114 +54,110 @@ export default class ExternalResourceDirectory {
             api as OpenAPIV3.Document,
             httpMethod as OpenAPIV2.HttpMethods,
             path
-          ) as
-            | OpenAPIV2.OperationObject
-            | OpenAPIV3.OperationObject
-            | OpenAPIV3_1.OperationObject
+          ) as OperationObject
         )!;
 
-        const parameters =
-          operationObject.parameters?.map((p) => $deref(p)) ?? [];
-        for (const parameter of parameters) {
-          const key = compact([parameter.name, parameter.description]).join(
-            ": "
-          );
-          if (!mappings.has(key)) mappings.set(key, new Set<string>());
+        // Add parameters to keyPathMap
+        addParametersToPathMapping(operationObject, pathMapping, fullPath);
 
-          mappings.get(key)?.add(fullPath);
-        }
-
-        const requestBody =
-          "requestBody" in operationObject
-            ? $deref(operationObject.requestBody)
-            : undefined;
-        const defaultContentType = getDefaultContentType(
-          Object.keys(requestBody?.content ?? [])
+        // Add request body properties to keyPathMap
+        addRequestBodyPropertiesToPathMapping(
+          operationObject,
+          pathMapping,
+          fullPath
         );
-        const requestBodySchema = $deref(
-          requestBody?.content?.[defaultContentType]?.schema
-        );
-        if (requestBodySchema) {
-          let properties:
-            | OpenAPIV2.SchemaObject["properties"]
-            | OpenAPIV3.SchemaObject["properties"]
-            | OpenAPIV3_1.SchemaObject["properties"];
 
-          if (requestBodySchema?.properties) {
-            properties = $deref(requestBodySchema.properties);
-          }
-
-          if ("items" in requestBodySchema && requestBodySchema.items) {
-            if (Array.isArray(requestBodySchema.items)) {
-              properties ||= $deref(requestBodySchema.items[0]).properties;
-            } else {
-              properties ||= $deref(requestBodySchema.items).properties ?? {};
-            }
-          }
-
-          properties ||= {};
-
-          for (const propertyName in properties) {
-            const property = $deref(properties[propertyName]);
-
-            const key = compact([propertyName, property.description]).join(
-              ": "
-            );
-            if (!mappings.has(key)) mappings.set(key, new Set<string>());
-            mappings.get(key)?.add(fullPath);
-          }
-        }
-
-        const key =
-          operationObject.description ??
-          operationObject.summary ??
-          operationObject.operationId ??
-          fullPath;
-        if (!mappings.has(key)) mappings.set(key, new Set<string>());
-        mappings.get(key)?.add(fullPath);
+        // Add operation object to keyPathMap
+        addOperationObjectToPathMapping(operationObject, pathMapping, fullPath);
       }
     }
 
-    const keys = Array.from(mappings.keys());
-
-    const batchSize = 1000;
-    for (let i = 0; i < keys.length; i += batchSize) {
-      const batch = keys.slice(i, i + batchSize).filter((key) => !!key);
-      const batchMap = Object.fromEntries(
-        batch.map(($key) => {
-          let key = $key;
-          while (encode(key).length > 8000) {
-            key = key.slice(0, -100);
-          }
-
-          return [key, $key];
-        })
-      );
-
-      console.log("creating embeddings for batch", Object.keys(batchMap));
-      const vectorStoreItems = Object.entries(
-        await createEmbeddings(Object.keys(batchMap))
-      ).map(([input, embedding]) => {
-        const key = batchMap[input];
-
-        return {
-          id: key,
-          embeddings: embedding,
-          metadata: {
-            paths: JSON.stringify(Array.from(mappings.get(key)!)),
-            provider: api.info.title,
-          },
-        } as IVectorStoreItem;
-      });
-      console.log(
-        "embeddings created. now pushing to vector store",
-        Object.keys(batchMap)
-      );
-      await vectorStore.createItems(collection, vectorStoreItems);
-    }
+    // Process keys in batches
+    await this.processKeysInBatches(pathMapping, api, collection);
 
     console.log("All done with embedding, completed without errors.");
   };
+
+  private async processKeysInBatches(
+    pathMapping: Map<string, Set<string>>,
+    api: OpenAPI.Document,
+    collection: VectorStoreCollection
+  ) {
+    const allKeys = Array.from(pathMapping.keys());
+    const batchSize = 1000;
+
+    // Process keys in batches
+    for (let i = 0; i < allKeys.length; i += batchSize) {
+      const batchKeys = allKeys.slice(i, i + batchSize).filter((key) => !!key);
+
+      // Create a map of trimmed keys to original keys
+      const trimmedToOriginalKeyMap = Object.fromEntries(
+        batchKeys.map((originalKey) => {
+          let trimmedKey = originalKey;
+          while (encode(trimmedKey).length > 8000) {
+            trimmedKey = trimmedKey.slice(0, -100);
+          }
+          return [trimmedKey, originalKey];
+        })
+      );
+
+      // Create metadata map and metadata hash map
+      const metadataMap = createMetadataMap(
+        trimmedToOriginalKeyMap,
+        pathMapping,
+        api
+      );
+      const metadataHashMap = createMetadataHashMap(metadataMap);
+
+      // Retrieve stored embeddings
+      const storedEmbeddings = await this.embeddingStore.retrieveEmbeddings(
+        Object.keys(trimmedToOriginalKeyMap)
+      );
+
+      // Determine which keys need to be embedded
+      const keysToEmbed = getKeysToEmbed(
+        trimmedToOriginalKeyMap,
+        storedEmbeddings,
+        metadataHashMap
+      );
+
+      // Create vector store items and embeddings to store
+      const vectorStoreItems: IVectorStoreItem[] = [];
+      const embeddingsToStore: EmbeddingsTable[] = [];
+
+      const embeddings = await createEmbeddings(keysToEmbed);
+
+      for (const trimmedKey of Object.keys(trimmedToOriginalKeyMap)) {
+        if (keysToEmbed.includes(trimmedKey)) {
+          const embedding = storedEmbeddings.find(
+            (embedding) => embedding.input === trimmedKey
+          );
+          if (embedding) {
+            vectorStoreItems.push({
+              id: trimmedKey,
+              embeddings: embedding.vectors,
+              metadata: metadataMap[trimmedKey],
+            });
+          }
+
+          vectorStoreItems.push({
+            id: trimmedKey,
+            embeddings: embeddings[trimmedKey],
+            metadata: metadataMap[trimmedKey],
+          });
+          embeddingsToStore.push({
+            input: trimmedKey,
+            vectors: JSON.stringify(embeddings[trimmedKey]),
+            metadata_object_hash: metadataHashMap[trimmedKey],
+          });
+        }
+      }
+
+      // Store embeddings and create vector store items
+      await this.embeddingStore.storeEmbeddings(embeddingsToStore);
+      await vectorStore.createItems(collection, vectorStoreItems);
+    }
+  }
 
   search = async (objective: string, providers: string[]) => {
     console.log("search called with objective:", objective);
@@ -286,4 +292,125 @@ export default class ExternalResourceDirectory {
       return indexes.includes(index);
     });
   };
+}
+
+function addParametersToPathMapping(
+  operationObject: OperationObject,
+  keyPathMap: Map<string, Set<string>>,
+  fullPath: string
+) {
+  const parameters = operationObject.parameters?.map((p) => $deref(p)) ?? [];
+  for (const parameter of parameters) {
+    const key = compact([parameter.name, parameter.description]).join(": ");
+    addKeyToPathMapping(key, keyPathMap, fullPath);
+  }
+}
+
+function addRequestBodyPropertiesToPathMapping(
+  operationObject: any,
+  pathMapping: Map<string, Set<string>>,
+  fullPath: string
+) {
+  const requestBody =
+    "requestBody" in operationObject
+      ? $deref(operationObject.requestBody)
+      : undefined;
+  const defaultContentType = getDefaultContentType(
+    Object.keys(requestBody?.content ?? [])
+  );
+  const requestBodySchema = $deref(
+    requestBody?.content?.[defaultContentType]?.schema
+  );
+  if (requestBodySchema) {
+    let properties:
+      | OpenAPIV2.SchemaObject["properties"]
+      | OpenAPIV3.SchemaObject["properties"]
+      | OpenAPIV3_1.SchemaObject["properties"];
+    if (requestBodySchema?.properties) {
+      properties = $deref(requestBodySchema.properties);
+    }
+    if ("items" in requestBodySchema && requestBodySchema.items) {
+      if (Array.isArray(requestBodySchema.items)) {
+        properties ||= $deref(requestBodySchema.items[0]).properties;
+      } else {
+        properties ||= $deref(requestBodySchema.items).properties ?? {};
+      }
+    }
+    properties ||= {};
+    for (const propertyName in properties) {
+      const property = $deref(properties[propertyName]);
+      const key = compact([propertyName, property.description]).join(": ");
+      addKeyToPathMapping(key, pathMapping, fullPath);
+    }
+  }
+}
+
+function addOperationObjectToPathMapping(
+  operationObject: any,
+  pathMapping: Map<string, Set<string>>,
+  fullPath: string
+) {
+  const key =
+    operationObject.description ??
+    operationObject.summary ??
+    operationObject.operationId ??
+    fullPath;
+  addKeyToPathMapping(key, pathMapping, fullPath);
+}
+
+function createMetadataMap(
+  trimmedToOriginalKeyMap: Record<string, string>,
+  pathMapping: Map<string, Set<string>>,
+  api: OpenAPI.Document
+): Record<string, any> {
+  return Object.fromEntries(
+    Object.entries(trimmedToOriginalKeyMap).map(([trimmedKey, originalKey]) => [
+      trimmedKey,
+      {
+        paths: JSON.stringify(Array.from(pathMapping.get(originalKey)!)),
+        provider: api.info.title,
+      },
+    ])
+  );
+}
+
+function createMetadataHashMap(
+  metadataMap: Record<string, any>
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(metadataMap).map(([trimmedKey, metadata]) => [
+      trimmedKey,
+      objecthash(metadata),
+    ])
+  );
+}
+
+function getKeysToEmbed(
+  trimmedToOriginalKeyMap: Record<string, string>,
+  storedEmbeddings: any[],
+  metadataHashMap: Record<string, string>
+): string[] {
+  return Object.keys(trimmedToOriginalKeyMap).filter((key) => {
+    if (!key) return false;
+
+    const storedEmbedding = storedEmbeddings.find(
+      (embedding) => embedding.input === key
+    );
+    if (storedEmbedding) {
+      const hash = metadataHashMap[key];
+      if (storedEmbedding.metadata_object_hash === hash) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function addKeyToPathMapping(
+  key: string,
+  pathMapping: Map<string, Set<string>>,
+  fullPath: string
+) {
+  if (!pathMapping.has(key)) pathMapping.set(key, new Set<string>());
+  pathMapping.get(key)?.add(fullPath);
 }

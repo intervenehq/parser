@@ -10,11 +10,14 @@ import ora, { Ora, Options as OraOptions } from "ora";
 import newGithubIssueUrl from "new-github-issue-url";
 import { t } from "~/utils/template";
 import { version } from "../../package.json";
+import fs from "fs";
 
-const configFile = Bun.file(path.join(os.homedir(), ".interveneconfig"));
+const configFile = path.join(os.homedir(), ".interveneconfig");
 
 export const readConfig = async (): Promise<Record<string, string>> => {
-  const config = (await configFile.exists()) ? await configFile.json() : {};
+  const config = fs.existsSync(configFile)
+    ? await JSON.parse(await fs.promises.readFile(configFile, "utf8"))
+    : {};
 
   return {
     ...process.env,
@@ -150,9 +153,10 @@ class CLI {
       initial: currentConfig?.VECTOR_STORE === "chromadb" ? 0 : 1,
     });
 
-    const writer = configFile.writer();
-    writer.write(JSON.stringify({ VECTOR_STORE, OPENAI_API_KEY }));
-    await writer.end();
+    await fs.promises.writeFile(
+      configFile,
+      JSON.stringify({ VECTOR_STORE, OPENAI_API_KEY })
+    );
   };
 
   private async parse(
@@ -165,8 +169,10 @@ class CLI {
 
     let context = {};
     try {
-      if (await Bun.file(options.context).exists()) {
-        context = Bun.file(options.context).json();
+      if (fs.existsSync(options.context)) {
+        context = JSON.parse(
+          await fs.promises.readFile(options.context, "utf8")
+        );
       }
     } catch (e) {}
     console.log(objective, files, context);

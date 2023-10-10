@@ -1,5 +1,5 @@
 import { JSONSchema7 } from "json-schema";
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 function extractRequiredSchema($schema: JSONSchema7 | undefined) {
   if (!$schema) return $schema;

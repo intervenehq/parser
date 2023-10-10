@@ -5,9 +5,10 @@ import BaseVectorStoreClient, {
 } from "./base";
 import { IndexItem, LocalIndex } from "vectra";
 import path from "path";
-import { rootdir } from "../../utils/rootdir";
+
 import VectorStoreCollection from "src/embeddings/Collection";
 import VectorStoreItem from "src/embeddings/Item";
+import { getCurrentDirectory } from "~/utils/current-directory";
 
 export default class VectraClient extends BaseVectorStoreClient<
   undefined,
@@ -22,7 +23,7 @@ export default class VectraClient extends BaseVectorStoreClient<
 
   findOrCreateCollection: FindOrCreateCollection<LocalIndex> = async (name) => {
     const index = new LocalIndex(
-      path.join(rootdir, "..", "..", ".tmp", `vectra_${name}`),
+      path.join(getCurrentDirectory(), "..", "..", ".tmp", `vectra_${name}`)
     );
 
     if (!(await index.isIndexCreated())) {
@@ -48,7 +49,7 @@ export default class VectraClient extends BaseVectorStoreClient<
     collection,
     query,
     where,
-    limit = 10,
+    limit = 10
   ) => {
     const result = await collection.object.queryItems(query, limit, where);
 

@@ -1,15 +1,10 @@
 import { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
 import { JSONSchema7 } from "json-schema";
-import { $deref } from "~/utils/openapi";
-import { cloneDeep } from "lodash";
+import { $deref, OperationObject } from "~/utils/openapi";
+import cloneDeep from "lodash/cloneDeep";
 import { getDefaultContentType } from "~/utils/openapi/content-type";
 
-function operationSchemas(
-  operationObject:
-    | OpenAPIV2.OperationObject
-    | OpenAPIV3.OperationObject
-    | OpenAPIV3_1.OperationObject,
-) {
+function operationSchemas(operationObject: OperationObject) {
   const parameters = $deref(operationObject.parameters) ?? [];
   const requestBody =
     "requestBody" in operationObject
@@ -19,7 +14,7 @@ function operationSchemas(
     operationObject.responses?.["200"] ??
       operationObject.responses?.["201"] ??
       operationObject.responses?.["204"] ??
-      operationObject.responses?.default,
+      operationObject.responses?.default
   );
 
   let querySchema: JSONSchema7 | undefined;
@@ -54,7 +49,7 @@ function operationSchemas(
 
   if (requestBody) {
     requestContentType = getDefaultContentType(
-      Object.keys(requestBody.content),
+      Object.keys(requestBody.content)
     );
     bodySchema = requestBody.content[requestContentType]!.schema as JSONSchema7;
   }
@@ -64,7 +59,7 @@ function operationSchemas(
       responseSchema = successResponse.schema as JSONSchema7;
     } else if ("content" in successResponse) {
       responseContentType = getDefaultContentType(
-        Object.keys(successResponse.content ?? {}),
+        Object.keys(successResponse.content ?? {})
       );
       responseSchema = successResponse.content?.[responseContentType]
         ?.schema as JSONSchema7;
@@ -88,7 +83,7 @@ function operationSchemas(
  */
 function appendParameterToSchema(
   $schema: JSONSchema7 | undefined,
-  parameter: OpenAPIV2.ParameterObject | OpenAPIV3.ParameterObject,
+  parameter: OpenAPIV2.ParameterObject | OpenAPIV3.ParameterObject
 ) {
   const schema = cloneDeep($schema) ?? {
     type: "object",

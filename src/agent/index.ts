@@ -15,6 +15,7 @@ import { t } from "~/utils/template";
 import { Options as OraOptions } from "ora";
 import { cli } from "src/cli";
 import chalk from "chalk";
+import fs from "fs/promises";
 
 export const objectivePrefix = (
   params: Pick<OperationMetdata, "objective" | "context">,
@@ -99,11 +100,11 @@ export default class Parser {
   ) => {
     const openapis: OpenAPI.Document[] = [];
     for (const openapiPath of openapiPaths) {
-      const contents = await Bun.file(openapiPath).json();
+      const contents = JSON.parse(await fs.readFile(openapiPath, "utf8"));
       const openapi = await SwaggerParser.parse(contents);
 
       openapis.push(openapi);
-      // await this.externalResourceDirectory.embed(openapi);
+      await this.externalResourceDirectory.embed(openapi);
     }
 
     const shortlist = await this.externalResourceDirectory.shortlist(
