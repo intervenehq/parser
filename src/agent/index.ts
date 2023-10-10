@@ -12,6 +12,8 @@ import { dereferencePath } from "~/utils/openapi/dereference-path";
 import { operationSchemas } from "~/utils/openapi/operation";
 import { extractRequiredSchema } from "~/utils/openapi/required-schema";
 import { t } from "~/utils/template";
+import { Options as OraOptions } from "ora";
+import { cli } from "src/cli";
 
 export const objectivePrefix = (
   params: Pick<OperationMetdata, "objective" | "context">,
@@ -58,19 +60,33 @@ export interface OperationMetdata {
   description: string;
 }
 
+interface Loggable {
+  log: (...args: any[]) => void;
+  info: (...args: any[]) => void;
+  warn: (...args: any[]) => void;
+  error: (...args: any[]) => void;
+  showLoader?: (options: OraOptions) => void;
+  hideLoader?: () => void;
+}
+
 export default class Parser {
   externalResourceDirectory: ExternalResourceDirectory;
   externalResourceEvaluator: ExternalResourceEvaluator;
   contextProcessor: ContextProcessor;
   codeGen: CodeGen;
+  logger: Loggable;
 
   chatCompletion: ChatCompletion;
 
-  constructor(language: CodeGenLanguage = CodeGenLanguage.javascript) {
+  constructor(
+    loggable: Loggable = cli,
+    language: CodeGenLanguage = CodeGenLanguage.javascript
+  ) {
     this.externalResourceDirectory = new ExternalResourceDirectory(this);
     this.externalResourceEvaluator = new ExternalResourceEvaluator(this);
     this.contextProcessor = new ContextProcessor(this);
     this.codeGen = new CodeGen(this, language);
+    this.logger = loggable;
 
     this.chatCompletion = new ChatCompletion();
   }
