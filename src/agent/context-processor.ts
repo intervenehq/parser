@@ -94,14 +94,14 @@ export default class ContextProcessor {
                 role: 'user',
                 content: t(
                   [
-                    ...objectivePrefix(params, false),
-                    ...operationPrefix(params),
+                    objectivePrefix(params, false),
+                    operationPrefix(params),
                     'And I came up with this input JSON schema to the resource:',
                     '```{{inputSchema}}```',
-                    "From the context, here is `{{key}}`'s JSON schema:",
+                    'Here is a JSON schema of a variable named `{{key}}`:',
                     '```{{chunkSchema}}```',
                     "Your task is to shortlist a conservative set of properties from {{key}}'s" +
-                      ' JSON schema which may be relevant to achieve the objective.',
+                      ' JSON schema which may be relevant to generate an input compliant to the input schema.',
                   ],
                   {
                     inputSchema: JSON.stringify(params.inputSchema),
@@ -149,8 +149,8 @@ export default class ContextProcessor {
           role: 'user',
           content: t(
             [
-              ...objectivePrefix(params),
-              ...operationPrefix(params),
+              objectivePrefix(params),
+              operationPrefix(params),
               'And this is the input JSON schema to the resource:',
               '```{{inputSchema}}```',
             ],

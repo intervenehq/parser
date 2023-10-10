@@ -4,9 +4,10 @@ import compact from 'lodash/compact';
 import intersection from 'lodash/intersection';
 import objecthash from 'object-hash';
 import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types';
-import { cli } from 'src/cli';
 import { stripHtml } from 'string-strip-html';
 import Zod from 'zod';
+
+import { cli } from 'src/cli';
 import VectorStoreCollection from '~/embeddings/Collection';
 import { createEmbeddings } from '~/embeddings/index';
 import { IVectorStoreItem } from '~/embeddings/Item';
@@ -262,7 +263,7 @@ export default class ExternalResourceDirectory {
 
     const message = t(
       [
-        ...objectivePrefix({ objective, context }),
+        objectivePrefix({ objective, context }),
         'I want to figure out what external resources (APIs) need to be called to achieve this objective.',
         'Your task is to shortlist APIs for me, here is the list:',
         '{{#each matchesStr}}',

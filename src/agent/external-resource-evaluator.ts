@@ -32,9 +32,9 @@ export default class ExternalResourceEvaluator {
   ) {
     const message = t(
       [
-        ...objectivePrefix(params),
+        objectivePrefix(params),
         'I want to check feasibility of the following external resource to achieve the objective:',
-        ...operationPrefix(params, true),
+        operationPrefix(params, true),
         '{{#if bodySchema}}body schema: {{bodySchema}}{{/if}}',
         '{{#if querySchema}}query params schema: {{querySchema}}{{/if}}',
         '{{#if pathSchema}}path params schema: {{pathSchema}}{{/if}}',
@@ -127,8 +127,8 @@ export default class ExternalResourceEvaluator {
               role: 'user',
               content: t(
                 [
-                  ...objectivePrefix(params, false),
-                  ...operationPrefix(params),
+                  objectivePrefix(params, false),
+                  operationPrefix(params),
                   'And I came up with this input to the resource:',
                   '```{{filteredSchema}}```',
                   'Your task is to shortlist properties that may be relevant to achieve the objective.',

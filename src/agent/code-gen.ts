@@ -11,6 +11,7 @@ import {
 } from '~/chat-completion/base';
 
 import { stringifyContext } from '~/utils/context';
+import { shallowSchema } from '~/utils/openapi/deepen-schema';
 import { t } from '~/utils/template';
 
 export enum CodeGenLanguage {
@@ -65,37 +66,43 @@ export default class CodeGen {
       this.language
     ];
 
+    const message = t(
+      [
+        objectivePrefix(params, false),
+        operationPrefix(params),
+        '{{#if needsContext}}',
+        'Here are some variables you can use to construct the output:',
+        '{{#each context}}`{{@key}}`: ```{{this}}```\n{{/each}}',
+        '{{/if}}',
+        'Your task is to generate a function in {{language}} that follows exactly this format:',
+        '```' + boilerplate + '```',
+        'Where it says <expression>, this function needs to return a value that satisfies the following JSON schema:',
+        '```{{inputSchema}}```',
+        'Rules:',
+        '1. You can only use data hidden in the objective. You must use it directly.',
+        '2. You must not assume or imagine any piece of data.',
+        '3. You must reply with null if the expression can not be generated.',
+        '4. You must reply only with the JS expression. No comments or explanations.',
+        "5. You are going to reply with code that is directly eval'd on a server. Do not wrap it with markdown or '```'.",
+        '6. The generated function must NOT take in any arguments.',
+        '{{#if needsContext}}7. You can use any of the variables by their names directly in the gnerated code. They will be available in the context during execution. {{/if}}',
+      ],
+      {
+        inputSchema: JSON.stringify(params.inputSchema),
+        needsContext: !!Object.keys(params.filteredContext).length,
+        context: Object.fromEntries(
+          Object.entries(params.filteredContext).map(([key, schema]) => {
+            return [key, JSON.stringify(shallowSchema(schema))];
+          }),
+        ),
+        language: this.language,
+      },
+    );
+
     const messages: IChatCompletionMessage[] = [
       {
         role: 'user',
-        content: t(
-          [
-            ...objectivePrefix(params, false),
-            ...operationPrefix(params),
-            '{{#if needsContext}}',
-            'Here are some variables you can use to construct the output:',
-            '{{#each context}}`{{@key}}`: ```{{this}}```\n{{/each}}',
-            '{{/if}}',
-            'Your task is to generate a function in {{language}} that follows exactly this format:',
-            '```' + boilerplate + '```',
-            'Where it says <expression>, this function needs to return a value that satisfies the following JSON schema:',
-            '```{{inputSchema}}```',
-            'Rules:',
-            '1. You can only use data hidden in the objective. You must use it directly.',
-            '2. You must not assume or imagine any piece of data.',
-            '3. You must reply with null if the expression can not be generated.',
-            '4. You must reply only with the JS expression. No comments or explanations.',
-            "5. You are going to reply with code that is directly eval'd on a server. Do not wrap it with markdown or '```'.",
-            '6. The generated function must NOT take in any arguments.',
-            '{{#if needsContext}}7. You can use any of the variables by their names directly in the gnerated code. They will be available in the context during execution. {{/if}}',
-          ],
-          {
-            inputSchema: JSON.stringify(params.inputSchema),
-            needsContext: !!Object.keys(params.filteredContext).length,
-            context: stringifyContext(params.filteredContext),
-            language: this.language,
-          },
-        ),
+        content: message,
       },
       {
         role: 'system',
