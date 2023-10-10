@@ -92,7 +92,7 @@ export default class CodeGen {
         needsContext: !!Object.keys(params.filteredContext).length,
         context: Object.fromEntries(
           Object.entries(params.filteredContext).map(([key, schema]) => {
-            return [key, JSON.stringify(shallowSchema(schema))];
+            return [key, JSON.stringify(schema)];
           }),
         ),
         language: this.language,
