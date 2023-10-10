@@ -35,13 +35,15 @@ bun install
 
 ## CLI Usage
 
-To use the CLI, run commands using the following syntax:
+Running the CLI looks like below. You can run the help command to find out more.
 
-bun src/cli/run.ts [command-name]
+```bash
+bun src/cli/run.ts help
+```
 
 ### Configure Command
 
-This command allows you to set up the OpenAI API key and choose a vector database (either ChromaDB or Pinecone) along with its respective API key.
+This command allows you to set up the OpenAI API key and choose a vector database (either ChromaDB or Vectra, an in memory vector DB) along with its respective API key.
 
 ```bash
 bun src/cli/run.ts configure
