@@ -37,7 +37,7 @@ export default class ExternalResourceDirectory {
   }
 
   embed = async (api: OpenAPI.Document) => {
-    cli.log('Embedding your OpenAPI spec...')
+    cli.log('Embedding your OpenAPI spec... (This might take a while for Pinecone and Vectra)')
     
     // <keywords>: [<api1>, <api2>]
     const pathMapping = new Map<string, Set<string>>();
