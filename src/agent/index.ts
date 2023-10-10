@@ -14,6 +14,7 @@ import { extractRequiredSchema } from "~/utils/openapi/required-schema";
 import { t } from "~/utils/template";
 import { Options as OraOptions } from "ora";
 import { cli } from "src/cli";
+import chalk from "chalk";
 
 export const objectivePrefix = (
   params: Pick<OperationMetdata, "objective" | "context">,
@@ -226,19 +227,20 @@ export default class Parser {
       });
 
       console.log(
-        JSON.stringify({
-          provider: api.provider,
-          method: api.method,
-          path: api.path,
-          bodyParams,
-          queryParams,
-          pathParams,
-          requestContentType,
-          responseContentType,
-          responseSchema,
-        })
+        chalk.blue.bold(
+          JSON.stringify({
+            provider: api.provider,
+            method: api.method,
+            path: api.path,
+            bodyParams,
+            queryParams,
+            pathParams,
+            requestContentType,
+            responseContentType,
+            responseSchema,
+          })
+        )
       );
-
       return;
     }
   };
