@@ -1,14 +1,15 @@
+import path from 'path';
+import { IndexItem, LocalIndex } from 'vectra';
+import VectorStoreCollection from '~/embeddings/Collection';
+import VectorStoreItem from '~/embeddings/Item';
+
+import { getCurrentDirectory } from '~/utils/current-directory';
+
 import BaseVectorStoreClient, {
   CreateItems,
   FindOrCreateCollection,
   QueryItems,
-} from "./base";
-import { IndexItem, LocalIndex } from "vectra";
-import path from "path";
-
-import VectorStoreCollection from "src/embeddings/Collection";
-import VectorStoreItem from "src/embeddings/Item";
-import { getCurrentDirectory } from "~/utils/current-directory";
+} from './base';
 
 export default class VectraClient extends BaseVectorStoreClient<
   undefined,
@@ -23,7 +24,7 @@ export default class VectraClient extends BaseVectorStoreClient<
 
   findOrCreateCollection: FindOrCreateCollection<LocalIndex> = async (name) => {
     const index = new LocalIndex(
-      path.join(getCurrentDirectory(), "..", "..", ".tmp", `vectra_${name}`)
+      path.join(getCurrentDirectory(), '..', '..', '.tmp', `vectra_${name}`),
     );
 
     if (!(await index.isIndexCreated())) {
@@ -49,7 +50,7 @@ export default class VectraClient extends BaseVectorStoreClient<
     collection,
     query,
     where,
-    limit = 10
+    limit = 10,
   ) => {
     const result = await collection.object.queryItems(query, limit, where);
 

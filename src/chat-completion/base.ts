@@ -1,8 +1,8 @@
-import OpenAI from "openai";
-import { SomeZodObject } from "zod";
+import OpenAI from 'openai';
+import { SomeZodObject } from 'zod';
 
 export interface IChatCompletionMessage {
-  role: "user" | "assistant" | "system";
+  role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
@@ -26,7 +26,10 @@ export type GenerateStructuredChatCompletion<
     generatorDescription: string;
     generatorOutputSchema: O;
   },
-  extraArgs?: Omit<OpenAI.Chat.ChatCompletionCreateParams, "model" | "messages">
+  extraArgs?: Omit<
+    OpenAI.Chat.ChatCompletionCreateParams,
+    'model' | 'messages'
+  >,
 ) => Promise<Zod.infer<O>>;
 
 export type GenerateChatCompletion = (
@@ -34,7 +37,10 @@ export type GenerateChatCompletion = (
     model: ChatCompletionModels;
     messages: IChatCompletionMessage[];
   },
-  extraArgs?: Omit<OpenAI.Chat.ChatCompletionCreateParams, "model" | "messages">
+  extraArgs?: Omit<
+    OpenAI.Chat.ChatCompletionCreateParams,
+    'model' | 'messages'
+  >,
 ) => Promise<IChatCompletionResponse>;
 
 export default abstract class BaseChatCompletion<ClientT> {

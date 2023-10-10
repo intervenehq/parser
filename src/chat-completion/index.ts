@@ -1,8 +1,8 @@
 import BaseChatCompletion, {
   GenerateChatCompletion,
   GenerateStructuredChatCompletion,
-} from "src/chat-completion/base";
-import OpenAIChatCompletion from "src/chat-completion/openai";
+} from '~/chat-completion/base';
+import OpenAIChatCompletion from '~/chat-completion/openai';
 
 export default class ChatCompletion extends BaseChatCompletion<any> {
   client: BaseChatCompletion<any>;

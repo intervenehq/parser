@@ -1,21 +1,22 @@
-import { JSONSchema7 } from "json-schema";
+import { JSONSchema7 } from 'json-schema';
+import Parser, {
+  objectivePrefix,
+  OperationMetdata,
+  operationPrefix,
+} from '~/agent/index';
 import {
   ChatCompletionModels,
   IChatCompletionMessage,
-} from "src/chat-completion/base";
-import Parser, {
-  OperationMetdata,
-  objectivePrefix,
-  operationPrefix,
-} from "~/agent/index";
-import { stringifyContext } from "~/utils/context";
-import { t } from "~/utils/template";
+} from '~/chat-completion/base';
+
+import { stringifyContext } from '~/utils/context';
+import { t } from '~/utils/template';
 
 export enum CodeGenLanguage {
-  javascript = "javascript",
-  python = "python",
-  ruby = "ruby",
-  php = "php",
+  javascript = 'javascript',
+  python = 'python',
+  ruby = 'ruby',
+  php = 'php',
 }
 
 const functionBoilerplate = (name: string) => ({
@@ -55,34 +56,34 @@ export default class CodeGen {
   async generateInput(
     params: OperationMetdata & {
       inputSchema: JSONSchema7;
-      filteredContext: OperationMetdata["context"];
+      filteredContext: OperationMetdata['context'];
       name: string;
-    }
+    },
   ) {
-    const boilerplate = functionBoilerplate("get_" + params.name + "_params")[
+    const boilerplate = functionBoilerplate('get_' + params.name + '_params')[
       this.langauge
     ];
 
     const messages: IChatCompletionMessage[] = [
       {
-        role: "user",
+        role: 'user',
         content: t(
           [
             ...objectivePrefix(params, false),
             ...operationPrefix(params),
-            "{{#if needsContext}}",
-            "Here are the JSONSchemas representing variables from the steps that occurred before:",
-            "{{#each context}}{{@key}}: ```{{this}}```\n{{/each}}",
-            "{{/if}}",
-            "Your task is to generate a function in {{langauge}} that follows exactly this format:",
-            "```" + boilerplate + "```",
-            "Where it says <expression>, this function needs to return a value that satisfies the following JSON schema:",
-            "```{{inputSchema}}```",
-            "Rules:",
-            "1. You can only use data hidden in the plan or use any of the variables.",
-            "2. You must not assume or imagine any piece of data.",
-            "3. You must reply with null if the expression can not be generated.",
-            "4. You must reply only with the JS expression. No comments or explanation.",
+            '{{#if needsContext}}',
+            'Here are the JSONSchemas representing variables from the steps that occurred before:',
+            '{{#each context}}{{@key}}: ```{{this}}```\n{{/each}}',
+            '{{/if}}',
+            'Your task is to generate a function in {{langauge}} that follows exactly this format:',
+            '```' + boilerplate + '```',
+            'Where it says <expression>, this function needs to return a value that satisfies the following JSON schema:',
+            '```{{inputSchema}}```',
+            'Rules:',
+            '1. You can only use data hidden in the plan or use any of the variables.',
+            '2. You must not assume or imagine any piece of data.',
+            '3. You must reply with null if the expression can not be generated.',
+            '4. You must reply only with the JS expression. No comments or explanation.',
             "5. You are going to reply with code that is directly eval'd on a server. Do not wrap it with markdown or '```'.",
           ],
           {
@@ -90,19 +91,19 @@ export default class CodeGen {
             needsContext: !!Object.keys(params.filteredContext).length,
             context: stringifyContext(params.filteredContext),
             langauge: this.langauge,
-          }
+          },
         ),
       },
       {
-        role: "system",
+        role: 'system',
         content: t([
-          "This is NOT correct response:",
+          'This is NOT correct response:',
           `\`\`\`${boilerplate}\`\`\``,
-          "This is also NOT correct response:",
+          'This is also NOT correct response:',
           `\`\`\`${this.langauge} ${boilerplate}\`\`\``,
-          "This is correct response:",
+          'This is correct response:',
           boilerplate,
-          "IN SHORT: no markdown, no tildes",
+          'IN SHORT: no markdown, no tildes',
         ]),
       },
     ];
@@ -114,9 +115,9 @@ export default class CodeGen {
       },
       {
         logit_bias: {
-          "15506": -1,
+          '15506': -1,
         },
-      }
+      },
     );
 
     if (generatedCode.content.match(/^[\s\n]*```(.|\n|\s)*```[\s\n]*$/)) {
@@ -126,21 +127,21 @@ export default class CodeGen {
           messages: [
             ...messages,
             {
-              role: "assistant",
+              role: 'assistant',
               content: generatedCode.content,
             },
             {
-              role: "user",
+              role: 'user',
               content:
-                "You did not follow the instructions properly. I specifically asked you not to generate markdown. Please try again.",
+                'You did not follow the instructions properly. I specifically asked you not to generate markdown. Please try again.',
             },
           ],
         },
         {
           logit_bias: {
-            "15506": -1,
+            '15506': -1,
           },
-        }
+        },
       );
     }
 

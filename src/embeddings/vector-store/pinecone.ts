@@ -1,12 +1,14 @@
+import { Index, Pinecone } from '@pinecone-database/pinecone';
+import VectorStoreCollection from '~/embeddings/Collection';
+import VectorStoreItem, { ItemMetadata } from '~/embeddings/Item';
+
+import { getConfig } from '~/utils/config';
+
 import BaseVectorStoreClient, {
   CreateItems,
   FindOrCreateCollection,
   QueryItems,
-} from "./base";
-import { Pinecone, Index } from "@pinecone-database/pinecone";
-import VectorStoreCollection from "src/embeddings/Collection";
-import VectorStoreItem, { ItemMetadata } from "src/embeddings/Item";
-import { getConfig } from "~/utils/config";
+} from './base';
 
 export default class PineconeClient extends BaseVectorStoreClient<
   Pinecone,
@@ -25,11 +27,11 @@ export default class PineconeClient extends BaseVectorStoreClient<
   }
 
   findOrCreateCollection: FindOrCreateCollection<Index> = async (
-    name: string
+    name: string,
   ) => {
     // pincone does not have a concept of collections, use namespace which is similar
     const index = this.client
-      .Index(getConfig()["PINECONE_INDEX"])
+      .Index(getConfig()['PINECONE_INDEX'])
       .namespace(name);
 
     return new VectorStoreCollection({
@@ -44,7 +46,7 @@ export default class PineconeClient extends BaseVectorStoreClient<
         id: item.id,
         values: item.embeddings,
         metadata: item.metadata,
-      }))
+      })),
     );
 
     return;
@@ -54,7 +56,7 @@ export default class PineconeClient extends BaseVectorStoreClient<
     collection,
     query,
     where,
-    limit = 10
+    limit = 10,
   ) => {
     const result = await collection.object.query({
       vector: query,

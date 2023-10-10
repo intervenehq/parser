@@ -1,3 +1,3 @@
-import { cli } from "src/cli";
+import { cli } from 'src/cli';
 
 cli.init();

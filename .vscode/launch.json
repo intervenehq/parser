@@ -7,7 +7,7 @@
     {
       "name": "Debug terminal",
       "type": "node-terminal",
-      "request": "launch",
-    },
+      "request": "launch"
+    }
   ]
 }

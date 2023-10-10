@@ -1,6 +1,7 @@
-import VectorStoreItem, { IVectorStoreItem } from "src/embeddings/Item";
-import VectorStoreCollection from "../Collection";
-import { Collection } from "chromadb";
+import { Collection } from 'chromadb';
+import VectorStoreItem, { IVectorStoreItem } from '~/embeddings/Item';
+
+import VectorStoreCollection from '../Collection';
 
 export type FindOrCreateCollection<CollectionT = any> = (
   name: string,
@@ -14,7 +15,7 @@ export type CreateItems<CollectionT = any> = (
 export type QueryItems<CollectionT = any, ItemT = any> = (
   collection: VectorStoreCollection<CollectionT>,
   query: number[],
-  where?: Parameters<Collection["query"]>[0]["where"],
+  where?: Parameters<Collection['query']>[0]['where'],
   limit?: number,
 ) => Promise<VectorStoreItem<ItemT>[]>;
 

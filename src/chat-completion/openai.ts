@@ -1,15 +1,15 @@
-import { ChatCompletionCreateParamsBase } from "node_modules/openai/resources/chat/completions";
-import OpenAI, { ClientOptions } from "openai";
+import { ChatCompletionCreateParamsBase } from 'node_modules/openai/resources/chat/completions';
+import OpenAI, { ClientOptions } from 'openai';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import BaseChatCompletion, {
   ChatCompletionModels,
   GenerateChatCompletion,
   GenerateStructuredChatCompletion,
-} from "src/chat-completion/base";
-import { zodToJsonSchema } from "zod-to-json-schema";
+} from '~/chat-completion/base';
 
 const MODELS = {
-  [ChatCompletionModels.critical]: "gpt-4-0613",
-  [ChatCompletionModels.trivial]: "gpt-3.5-turbo-0613",
+  [ChatCompletionModels.critical]: 'gpt-4-0613',
+  [ChatCompletionModels.trivial]: 'gpt-3.5-turbo-0613',
 };
 
 export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
@@ -40,16 +40,16 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
 
   generateStructured: GenerateStructuredChatCompletion = async (
     params,
-    extraArgs
+    extraArgs,
   ) => {
-    const messages: ChatCompletionCreateParamsBase["messages"] = [
+    const messages: ChatCompletionCreateParamsBase['messages'] = [
       ...params.messages.map((message) => ({
         role: message.role,
         content: message.content,
       })),
       {
-        role: "user",
-        content: "always call one of the provided functions",
+        role: 'user',
+        content: 'always call one of the provided functions',
       },
     ];
 
@@ -70,7 +70,7 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     });
 
     const parseResult = params.generatorOutputSchema.safeParse(
-      JSON.parse(response.choices[0].message.function_call?.arguments ?? "{}")
+      JSON.parse(response.choices[0].message.function_call?.arguments ?? '{}'),
     );
 
     if (parseResult.success) {
@@ -78,16 +78,16 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     }
 
     messages.push({
-      role: "assistant",
+      role: 'assistant',
       function_call: response.choices[0].message.function_call!,
       content: null,
     });
     messages.push({
-      role: "user",
+      role: 'user',
       content:
-        "You have not supplied correct parameters to the function. Try again. The error was: \n ```" +
+        'You have not supplied correct parameters to the function. Try again. The error was: \n ```' +
         JSON.stringify(parseResult.error.errors) +
-        "```",
+        '```',
     });
 
     const response2 = await this.client.chat.completions.create({
@@ -107,7 +107,7 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     });
 
     const parseResult2 = params.generatorOutputSchema.safeParse(
-      JSON.parse(response2.choices[0].message.function_call?.arguments ?? "{}")
+      JSON.parse(response2.choices[0].message.function_call?.arguments ?? '{}'),
     );
 
     if (parseResult2.success) {
@@ -117,8 +117,8 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     }
 
     throw new Error(
-      "GPT could not call a function even after retrying: " +
-        JSON.stringify(parseResult2.error.errors)
+      'GPT could not call a function even after retrying: ' +
+        JSON.stringify(parseResult2.error.errors),
     );
   };
 }

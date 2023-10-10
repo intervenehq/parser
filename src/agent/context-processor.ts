@@ -1,15 +1,16 @@
-import { JSONSchema7 } from "json-schema";
-import { ChatCompletionModels } from "src/chat-completion/base";
-import Zod from "zod";
+import { JSONSchema7 } from 'json-schema';
+import Zod from 'zod';
 import Parser, {
-  OperationMetdata,
   objectivePrefix,
+  OperationMetdata,
   operationPrefix,
-} from "~/agent/index";
-import { chunkSchema, getSubSchema } from "~/utils/openapi/chunk-schema";
-import { deepenSchema, shallowSchema } from "~/utils/openapi/deepen-schema";
-import { mergeSchema } from "~/utils/openapi/merge-schema";
-import { t } from "~/utils/template";
+} from '~/agent/index';
+import { ChatCompletionModels } from '~/chat-completion/base';
+
+import { chunkSchema, getSubSchema } from '~/utils/openapi/chunk-schema';
+import { deepenSchema, shallowSchema } from '~/utils/openapi/deepen-schema';
+import { mergeSchema } from '~/utils/openapi/merge-schema';
+import { t } from '~/utils/template';
 
 export default class ContextProcessor {
   private parser: Parser;
@@ -84,17 +85,17 @@ export default class ContextProcessor {
           await this.parser.chatCompletion.generateStructured({
             messages: [
               {
-                role: "user",
+                role: 'user',
                 content: t(
                   [
                     ...objectivePrefix(params),
                     ...operationPrefix(params),
-                    "And I came up with this input JSON schema to the resource:",
-                    "```{{inputSchema}}```",
+                    'And I came up with this input JSON schema to the resource:',
+                    '```{{inputSchema}}```',
                     "From the context, here is `{{key}}`'s JSON schema:",
-                    "```{{chunkSchema}}```",
+                    '```{{chunkSchema}}```',
                     "Your task is to shortlist a conservative set of properties from {{key}}'s" +
-                      " JSON schema which may be relevant to achieve the objective.",
+                      ' JSON schema which may be relevant to achieve the objective.',
                   ],
                   {
                     inputSchema: JSON.stringify(params.inputSchema),
@@ -104,9 +105,9 @@ export default class ContextProcessor {
                 ),
               },
             ],
-            generatorName: "shortlist_properties",
+            generatorName: 'shortlist_properties',
             generatorDescription:
-              "Shortlist properties that are relevant given the objective",
+              'Shortlist properties that are relevant given the objective',
             generatorOutputSchema: Zod.object({
               shortlist: Zod.array(Zod.enum(propertyNames as [string])),
             }),
@@ -139,13 +140,13 @@ export default class ContextProcessor {
     const { shortlist } = await this.parser.chatCompletion.generateStructured({
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: t(
             [
               ...objectivePrefix(params),
               ...operationPrefix(params),
-              "And this is the input JSON schema to the resource:",
-              "```{{inputSchema}}```",
+              'And this is the input JSON schema to the resource:',
+              '```{{inputSchema}}```',
             ],
             {
               description: params.description,
@@ -154,9 +155,9 @@ export default class ContextProcessor {
           ),
         },
       ],
-      generatorName: "shortlist_context",
+      generatorName: 'shortlist_context',
       generatorDescription:
-        "Shortlist context datum that are relevant given the objective",
+        'Shortlist context datum that are relevant given the objective',
       generatorOutputSchema: Zod.object({
         shortlist: Zod.array(Zod.enum(Object.keys(params.context) as [string])),
       }),
