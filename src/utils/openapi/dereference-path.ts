@@ -19,10 +19,6 @@ function processEndpoint(endpointPath: string): Set<string> {
   const endpointData = data.paths[endpointPath] || {};
   const refs = new Set(findAllRefs(endpointData));
 
-  refs.forEach((ref: string) => console.log(ref));
-
-  console.log("\n--------------------------------\n");
-
   return refs;
 }
 

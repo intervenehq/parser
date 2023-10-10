@@ -114,7 +114,9 @@ export default class Parser {
       context,
       openapis
     );
-    console.log("Shortlist:", shortlist);
+
+    cli.info("Shortlist: \n");
+    console.log(shortlist);
 
     for (const api of shortlist) {
       const openapi = openapis.find((o) => o.info.title === api.provider)!;
@@ -153,7 +155,7 @@ export default class Parser {
         });
 
       if (!isFeasible) {
-        console.log(
+        cli.error(
           "chosen API is not feasible, moving on to the next API. reason: '" +
             reason +
             "'"
@@ -161,7 +163,7 @@ export default class Parser {
         continue;
       }
 
-      console.log("chosen API is feasible, evaluating it further");
+      cli.log("Chosen API is feasible, evaluating it further.");
 
       const {
         body: filteredBodySchema,
@@ -180,7 +182,7 @@ export default class Parser {
           path: pathSchema,
         },
       });
-      console.log(
+      cli.info(
         JSON.stringify({
           body: filteredBodySchema,
           query: filteredQuerySchema,
@@ -200,7 +202,8 @@ export default class Parser {
           path: filteredPathSchema,
         },
       });
-      console.log(
+
+      cli.info(
         JSON.stringify({
           body: filteredContextForBody,
           query: filteredContextForQuery,
