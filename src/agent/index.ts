@@ -16,7 +16,8 @@ import { Options as OraOptions } from "ora";
 import { cli } from "src/cli";
 import chalk from "chalk";
 import path from "path";
-import fs from "fs/promises";
+import fs from "fs";
+import { getCurrentDirectory } from "~/utils/current-directory";
 
 export const objectivePrefix = (
   params: Pick<OperationMetdata, "objective" | "context">,
@@ -240,8 +241,8 @@ export default class Parser {
         responseSchema,
       });
 
-      const outputPath = path.join(__dirname, "../../output.json");
-      fs.writeFile(outputPath, finalOutput);
+      const outputPath = path.join(getCurrentDirectory(), "../../output.json");
+      fs.writeFileSync(outputPath, finalOutput);
 
       cli.log(
         `Your output has been written to output.json in the project's root`
