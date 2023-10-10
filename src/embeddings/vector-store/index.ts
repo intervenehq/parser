@@ -5,6 +5,7 @@ import BaseVectorStoreClient, {
 } from "src/embeddings/vector-store/base";
 import VectraClient from "src/embeddings/vector-store/vectra";
 import ChromaDBClient from "~/embeddings/vector-store/chromadb";
+import PineconeClient from "~/embeddings/vector-store/pinecone";
 import { getConfig } from "~/utils/config";
 
 class VectorStore extends BaseVectorStoreClient<BaseVectorStoreClient<any>> {
@@ -13,10 +14,22 @@ class VectorStore extends BaseVectorStoreClient<BaseVectorStoreClient<any>> {
   constructor() {
     super();
 
-    if (getConfig().VECTOR_STORE === "chromadb") {
-      this.client = new ChromaDBClient({ path: "http://0.0.0.0:8000" });
-    } else {
-      this.client = new VectraClient();
+    const config = getConfig();
+
+    switch (config.VECTOR_STORE) {
+      case "chromadb":
+        this.client = new ChromaDBClient({ path: "http://0.0.0.0:8000" });
+        break;
+
+      case "pinecone":
+        this.client = new PineconeClient({
+          apiKey: config.PINECONE_API_KEY,
+          environment: config.PINECONE_ENVIRONMENT,
+        });
+        break;
+      default:
+        this.client = new VectraClient();
+        break;
     }
   }
 

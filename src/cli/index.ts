@@ -1,7 +1,5 @@
 import chalk from "chalk";
 import { Command } from "commander";
-import path from "path";
-import os from "os";
 import prompts from "prompts";
 import { CodeGenLanguage } from "~/agent/code-gen";
 import { formatList } from "~/utils/list-format";
@@ -122,29 +120,85 @@ class CLI {
   }
 
   private configure = async () => {
-    const currentConfig = await getConfig();
+    let {
+      OPENAI_API_KEY,
+      VECTOR_STORE,
+      PINECONE_INDEX,
+      PINECONE_ENVIRONMENT,
+      PINECONE_API_KEY,
+    } = getConfig();
 
-    const { OPENAI_API_KEY } = await prompts({
-      type: "text",
-      name: "OPENAI_API_KEY",
-      message: "Please enter your OpenAI API key:",
-      initial: currentConfig?.OPENAI_API_KEY,
-    });
+    OPENAI_API_KEY = (
+      await prompts({
+        type: "text",
+        name: "OPENAI_API_KEY",
+        message: "Please enter your OpenAI API key:",
+        initial: OPENAI_API_KEY,
+      })
+    ).OPENAI_API_KEY;
 
-    const { VECTOR_STORE } = await prompts({
-      type: "select",
-      name: "VECTOR_STORE",
-      message: "Choose a vector db:",
-      choices: [
-        { title: "ChromaDB", value: "chromadb" },
-        { title: "vectra (built-in)", value: "vectra" },
-      ],
-      initial: currentConfig?.VECTOR_STORE === "chromadb" ? 0 : 1,
-    });
+    VECTOR_STORE = (
+      await prompts({
+        type: "select",
+        name: "VECTOR_STORE",
+        message: "Choose a vector db:",
+        choices: [
+          {
+            title:
+              "vectra (zero-setup, not recommended for specs larger than a MB) ",
+            value: "chromadb",
+          },
+          { title: "ChromaDB", value: "chromadb" },
+          { title: "Pinecone", value: "pinecone" },
+        ],
+        initial: VECTOR_STORE,
+      })
+    ).VECTOR_STORE;
+
+    switch (VECTOR_STORE) {
+      case "pinecone":
+        PINECONE_INDEX = (
+          await prompts({
+            type: "text",
+            name: "PINECONE_INDEX",
+            message: "Please enter name of the pinecone index:",
+            initial: PINECONE_INDEX,
+          })
+        ).PINECONE_INDEX;
+
+        PINECONE_ENVIRONMENT = (
+          await prompts({
+            type: "text",
+            name: "PINECONE_ENVIRONMENT",
+            message:
+              "What environment does your pinecone index use? (eg gcp-starter):",
+            initial: PINECONE_ENVIRONMENT,
+          })
+        ).PINECONE_ENVIRONMENT;
+
+        PINECONE_API_KEY = (
+          await prompts({
+            type: "text",
+            name: "PINECONE_API_KEY",
+            message: "Please enter your pinecone api key:",
+            initial: PINECONE_API_KEY,
+          })
+        ).PINECONE_API_KEY;
+        break;
+
+      default:
+        break;
+    }
 
     await fs.promises.writeFile(
       configFile,
-      JSON.stringify({ VECTOR_STORE, OPENAI_API_KEY })
+      JSON.stringify({
+        VECTOR_STORE,
+        OPENAI_API_KEY,
+        PINECONE_INDEX,
+        PINECONE_ENVIRONMENT,
+        PINECONE_API_KEY,
+      })
     );
   };
 
