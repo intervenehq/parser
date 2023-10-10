@@ -226,21 +226,24 @@ export default class Parser {
         name: "path",
       });
 
+      const finalOutput = JSON.stringify({
+        provider: api.provider,
+        method: api.method,
+        path: api.path,
+        bodyParams,
+        queryParams,
+        pathParams,
+        requestContentType,
+        responseContentType,
+        responseSchema,
+      });
+
       console.log(
-        chalk.blue.bold(
-          JSON.stringify({
-            provider: api.provider,
-            method: api.method,
-            path: api.path,
-            bodyParams,
-            queryParams,
-            pathParams,
-            requestContentType,
-            responseContentType,
-            responseSchema,
-          })
-        )
+        chalk.blue.bold("Your output has been written to: output.json")
       );
+
+      await Bun.write("output.json", finalOutput);
+
       return;
     }
   };
