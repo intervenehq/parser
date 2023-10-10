@@ -4,6 +4,7 @@ import compact from 'lodash/compact';
 import intersection from 'lodash/intersection';
 import objecthash from 'object-hash';
 import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types';
+import { cli } from 'src/cli';
 import { stripHtml } from 'string-strip-html';
 import Zod from 'zod';
 import VectorStoreCollection from '~/embeddings/Collection';
@@ -19,7 +20,6 @@ import { $deref, OperationObject } from '~/utils/openapi';
 import { getDefaultContentType } from '~/utils/openapi/content-type';
 import { dereferencePath } from '~/utils/openapi/dereference-path';
 import { t } from '~/utils/template';
-import { cli } from 'src/cli';
 
 export type ExternalResourcePath = string & {
   ____: never;
@@ -37,8 +37,10 @@ export default class ExternalResourceDirectory {
   }
 
   embed = async (api: OpenAPI.Document) => {
-    cli.log('Embedding your OpenAPI spec... (This might take a while for Pinecone and Vectra)')
-    
+    cli.log(
+      'Embedding your OpenAPI spec... (This might take a while for Pinecone and Vectra)',
+    );
+
     // <keywords>: [<api1>, <api2>]
     const pathMapping = new Map<string, Set<string>>();
     const collection = await vectorStore.findOrCreateCollection('openapi');
@@ -78,7 +80,7 @@ export default class ExternalResourceDirectory {
     // Process keys in batches
     await this.processKeysInBatches(pathMapping, api, collection);
 
-    cli.log('All done with embedding, completed without errors.')
+    cli.log('All done with embedding, completed without errors.');
   };
 
   private async processKeysInBatches(
@@ -135,16 +137,17 @@ export default class ExternalResourceDirectory {
       const embeddings = await createEmbeddings(keysToEmbed);
 
       for (const trimmedKey of Object.keys(trimmedToOriginalKeyMap)) {
+        let vectorStoreItem: IVectorStoreItem;
         if (keysToEmbed.includes(trimmedKey)) {
           const embedding = storedEmbeddings.find(
             (embedding) => embedding.input === trimmedKey,
           );
           if (embedding) {
-            vectorStoreItems.push({
+            vectorStoreItem = {
               id: trimmedKey,
               embeddings: embedding.vectors,
               metadata: metadataMap[trimmedKey],
-            });
+            };
           }
 
           embeddingsToStore.push({
@@ -154,13 +157,15 @@ export default class ExternalResourceDirectory {
           });
         }
 
-        vectorStoreItems.push({
+        vectorStoreItem ||= {
           id: trimmedKey,
           embeddings:
             embeddings[trimmedKey] ??
             storedEmbeddings.find(({ input }) => input === trimmedKey)?.vectors,
           metadata: metadataMap[trimmedKey],
-        });
+        };
+
+        vectorStoreItems.push(vectorStoreItem);
       }
 
       // Store embeddings and create vector store items
