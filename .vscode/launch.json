@@ -5,10 +5,9 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "command": "pnpm tsx src/cli/run.ts parse \"extend trial given the subscription id by 10 days\" \"/Users/sudhanshugautam/workspace/intevene/src/server/openapi/stripe.json\" -c \"{ \"customer_id\": { \"type\": \"string\" } }\"",
-      "name": "Run parser",
+      "name": "Debug terminal",
+      "type": "node-terminal",
       "request": "launch",
-      "type": "node-terminal"
-    }
+    },
   ]
 }
