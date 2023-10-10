@@ -221,7 +221,6 @@ class CLI {
         );
       }
     } catch (e) {}
-    console.log(objective, files, context);
 
     const parser = new Parser(this, options.language);
 

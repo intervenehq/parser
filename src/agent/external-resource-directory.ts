@@ -166,13 +166,12 @@ export default class ExternalResourceDirectory {
   }
 
   search = async (objective: string, providers: string[]) => {
-    console.log('Search called with objective:', objective);
+    cli.info('Search called with objective:', objective);
 
     const collection = await vectorStore.findOrCreateCollection('openapi');
     console.log('Collection created or fetched:', collection);
 
     const embedding = await createEmbeddings(objective);
-    console.log('Created embedding for objective:', embedding);
 
     const matches = await vectorStore.queryItems(
       collection,
@@ -191,7 +190,6 @@ export default class ExternalResourceDirectory {
             },
           },
     );
-    console.log('Found matches:', matches);
 
     const pathScores: Map<string, number> = new Map();
 
