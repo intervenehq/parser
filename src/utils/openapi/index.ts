@@ -7,7 +7,7 @@ type ExcludeReference<T> = T extends
   : T;
 
 export function $deref<O>(
-  obj: O | OpenAPIV3.ReferenceObject | OpenAPIV2.ReferenceObject
+  obj: O | OpenAPIV3.ReferenceObject | OpenAPIV2.ReferenceObject,
 ) {
   return obj as ExcludeReference<O>;
 }

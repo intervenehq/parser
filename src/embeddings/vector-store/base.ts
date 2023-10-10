@@ -6,25 +6,25 @@ import VectorStoreCollection from "../Collection";
 import { Collection } from "chromadb";
 
 export type FindOrCreateCollection<CollectionT = any> = (
-  name: string
+  name: string,
 ) => Promise<VectorStoreCollection<CollectionT>>;
 
 export type CreateItems<CollectionT = any> = (
   collection: VectorStoreCollection<CollectionT>,
-  items: IVectorStoreItem[]
+  items: IVectorStoreItem[],
 ) => Promise<void>;
 
 export type QueryItems<CollectionT = any, ItemT = any> = (
   collection: VectorStoreCollection<CollectionT>,
   query: number[],
   where?: Parameters<Collection["query"]>[0]["where"],
-  limit?: number
+  limit?: number,
 ) => Promise<VectorStoreItem<ItemT>[]>;
 
 export default abstract class BaseVectorStoreClient<
   ClientT,
   CollectionT = any,
-  ItemT = any
+  ItemT = any,
 > {
   abstract client: ClientT;
 

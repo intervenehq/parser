@@ -174,5 +174,4 @@ dist
 .tmp
 
 .DS_Store
-
-src/playground
+chroma.log

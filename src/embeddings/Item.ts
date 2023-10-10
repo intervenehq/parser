@@ -11,7 +11,7 @@ export interface IVectorStoreItem<Metadata = ItemMetadata> {
 
 export default class VectorStoreItem<
   ProviderItemT = undefined,
-  Metadata extends ItemMetadata = ItemMetadata
+  Metadata extends ItemMetadata = ItemMetadata,
 > {
   metadata?: Metadata;
   object!: ProviderItemT extends undefined ? undefined : ProviderItemT;
@@ -22,10 +22,10 @@ export default class VectorStoreItem<
   constructor(
     props: SetRequired<IVectorStoreItem<Metadata>, "distance"> &
       (ProviderItemT extends undefined
-        ? {}
+        ? Record<string, never>
         : {
             object: ProviderItemT;
-          })
+          }),
   ) {
     this.id = props.id;
     this.embeddings = props.embeddings;
