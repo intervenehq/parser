@@ -240,12 +240,12 @@ export default class Parser {
         responseSchema,
       });
 
-      console.log(chalk.blue.bold(""));
-
       const outputPath = path.join(__dirname, "../../output.json");
       fs.writeFile(outputPath, finalOutput);
 
-      cli.log("Your output has been written to: output.json");
+      cli.log(
+        `Your output has been written to output.json in the project's root`
+      );
 
       return;
     }
