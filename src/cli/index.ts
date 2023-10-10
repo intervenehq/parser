@@ -9,7 +9,7 @@ import Parser from "~/agent/index";
 import ora, { Ora, Options as OraOptions } from "ora";
 import newGithubIssueUrl from "new-github-issue-url";
 import { t } from "~/utils/template";
-import { last } from "lodash";
+import { version } from "../../package.json";
 
 const configFile = Bun.file(path.join(os.homedir(), ".interveneconfig"));
 
@@ -35,7 +35,7 @@ class CLI {
     this.program
       .name("intervene-parser")
       .description("CLI for Intervene to parse natural language")
-      .version("0.0.1");
+      .version(version);
 
     this.program
       .command("configure")
@@ -122,7 +122,7 @@ class CLI {
     });
 
     this.program.error(
-      "Unexpected error occurred. If you think this is a bug, please open an issue at " +
+      "Unexpected error occurred. If you think this is a bug, please click this link to open a GitHub issue: " +
         url
     );
   }

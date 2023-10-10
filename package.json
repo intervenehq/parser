@@ -1,6 +1,7 @@
 {
   "name": "intervene-parser",
   "module": "src/index.ts",
+  "version": "0.0.1",
   "scripts": {
     "cli": "CLI=true bun run src/cli/index.ts"
   },

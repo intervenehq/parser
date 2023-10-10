@@ -24,5 +24,9 @@
       "~/embeddings/*": ["src/embeddings/*"],
       "~/agent/*": ["src/agent/*"]
     }
-  }
+  },
+  "include": [
+    "src/**/*",
+    "package.json"
+  ]
 }
