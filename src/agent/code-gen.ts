@@ -10,8 +10,6 @@ import {
   IChatCompletionMessage,
 } from '~/chat-completion/base';
 
-import { stringifyContext } from '~/utils/context';
-import { shallowSchema } from '~/utils/openapi/deepen-schema';
 import { t } from '~/utils/template';
 
 export enum CodeGenLanguage {
