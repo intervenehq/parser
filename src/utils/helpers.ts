@@ -1,5 +1,9 @@
 import fs from 'fs';
 
 export function writeToPromptsFile(text: string) {
-    fs.writeFileSync('../../prompts.txt', text + "\n");    
+    fs.appendFileSync('../../prompts.txt', text + "\n");    
+}
+
+export function clearPromptsFile() {
+    fs.writeFileSync('../../prompts.txt', '');
 }
