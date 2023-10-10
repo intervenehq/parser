@@ -1,5 +1,4 @@
-import { Index, Pinecone } from '@pinecone-database/pinecone';
-
+import { Index, Pinecone, PineconeRecord } from '@pinecone-database/pinecone';
 import VectorStoreCollection from '~/embeddings/Collection';
 import VectorStoreItem, { ItemMetadata } from '~/embeddings/Item';
 
@@ -30,10 +29,7 @@ export default class PineconeClient extends BaseVectorStoreClient<
   findOrCreateCollection: FindOrCreateCollection<Index> = async (
     name: string,
   ) => {
-    // pincone does not have a concept of collections, use namespace which is similar
-    const index = this.client
-      .Index(getConfig()['PINECONE_INDEX'])
-      .namespace(name);
+    let index = this.client.Index(getConfig()['PINECONE_INDEX']);
 
     return new VectorStoreCollection({
       name: name,
@@ -42,13 +38,21 @@ export default class PineconeClient extends BaseVectorStoreClient<
   };
 
   createItems: CreateItems<Index> = async (collection, items) => {
-    await collection.object.upsert(
-      items.map((item) => ({
-        id: item.id,
+    let batch: PineconeRecord[] = [];
+
+    for (const item of items) {
+      batch.push({
+        id: item.id.slice(0, 511),
         values: item.embeddings,
         metadata: item.metadata,
-      })),
-    );
+      });
+
+      const batchSizeInBytes = Buffer.from(JSON.stringify(batch)).length;
+      if (batchSizeInBytes >= 4000000) {
+        await collection.object.upsert(batch);
+        batch = [];
+      }
+    }
 
     return;
   };

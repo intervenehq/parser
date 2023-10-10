@@ -4,8 +4,8 @@ import compact from 'lodash/compact';
 import intersection from 'lodash/intersection';
 import objecthash from 'object-hash';
 import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types';
+import { stripHtml } from 'string-strip-html';
 import Zod from 'zod';
-
 import VectorStoreCollection from '~/embeddings/Collection';
 import { createEmbeddings } from '~/embeddings/index';
 import { IVectorStoreItem } from '~/embeddings/Item';
@@ -96,10 +96,14 @@ export default class ExternalResourceDirectory {
       // Create a map of trimmed keys to original keys
       const trimmedToOriginalKeyMap = Object.fromEntries(
         batchKeys.map((originalKey) => {
-          let trimmedKey = originalKey;
+          let trimmedKey = stripHtml(originalKey).result;
+
           while (encode(trimmedKey).length > 8000) {
             trimmedKey = trimmedKey.slice(0, -100);
           }
+
+          trimmedKey = trimmedKey.replace(/[^\x00-\x7F]/g, '');
+
           return [trimmedKey, originalKey];
         }),
       );
@@ -373,6 +377,7 @@ function createMetadataMap(
       {
         paths: JSON.stringify(Array.from(pathMapping.get(originalKey)!)),
         provider: api.info.title,
+        input: originalKey,
       },
     ]),
   );
