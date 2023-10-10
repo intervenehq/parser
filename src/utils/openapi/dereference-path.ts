@@ -1,4 +1,6 @@
-let data: any = {};
+import { OpenAPIV3 } from "openapi-types";
+
+let data: OpenAPIV3.Document;
 
 function findAllRefs(obj: any, refs: string[] = []): string[] {
   if (typeof obj === "object" && obj !== null) {
@@ -50,7 +52,9 @@ function substituteRef(obj: any, processed: Set<string> = new Set()): void {
   }
 }
 
-function getComponentByRef(ref: string): [any, string] {
+function getComponentByRef(
+  ref: string
+): [OpenAPIV3.SchemaObject | undefined | OpenAPIV3.ReferenceObject, string] {
   const components = data.components?.schemas || {};
   const componentName = ref.split("/").pop() || "";
   return [components[componentName], componentName];
@@ -95,9 +99,9 @@ function flattenRefs(d: any): any {
 }
 
 export function dereferencePath(
-  jsonData: any,
-  httpMethod: string,
-  endpointPath: string,
+  jsonData: OpenAPIV3.Document,
+  httpMethod: keyof OpenAPIV3.PathItemObject,
+  endpointPath: string
 ) {
   data = jsonData;
 
@@ -110,5 +114,5 @@ export function dereferencePath(
   const endpointData = data.paths[endpointPath] || {};
   flattenRefs(endpointData);
 
-  return data["paths"][endpointPath][httpMethod];
+  return data?.paths![endpointPath]![httpMethod];
 }
