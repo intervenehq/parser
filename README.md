@@ -6,11 +6,27 @@
 
 ## Introduction
 
-Parser to translate a natural language query into an actionable piece of code.
+Parser to generate type-safe and context-safe API calls given a natural language query.
 
 Here's a quick demo:
-
 https://github.com/tryintervene/parser/assets/32911377/6809b796-638e-41dc-aa75-6d3465d76988
+
+
+Here's a sample output:
+```bash
+{
+    "provider": "<API provider name>",
+    "method": "<Http Method>",
+    "path": "<API endpoint to call>",
+    "bodyParams": "<eval'able function to return body params>",
+    "queryParams": "<eval'able function to return query params>",
+    "pathParams": "<eval'able function to return path params>",
+    "requestContentType": "application/x-www-form-urlencoded",
+    "responseContentType": "application/json",
+    "responseSchema": "<schema of the Response>"
+  }
+```
+It captures what inputs are needed and how to call the API, and gives you functions that can be eval'd on your end.
 
 ## Problem
 
@@ -33,7 +49,7 @@ pnpm i
 Running the CLI looks like below. You can run the help command to find out more.
 
 ```bash
-pnpm tsx src/cli/run.ts help
+pnpm cli help
 ```
 
 ### Configure Command
@@ -41,7 +57,7 @@ pnpm tsx src/cli/run.ts help
 This command allows you to set up the OpenAI API key and choose a vector database (either ChromaDB or Vectra, an in memory vector DB) along with its respective API key.
 
 ```bash
-pnpm tsx src/cli/run.ts configure
+pnpm cli configure
 ```
 
 Follow the prompts to input or update the keys.
@@ -51,7 +67,7 @@ Follow the prompts to input or update the keys.
 This command lets you parse a natural language query and give you an appropriate command. The OpenAPI spec augments the LLM's knowledge on the specific API providers needed for the task.
 
 ```bash
-pnpm tsx src/cli/run.ts parse "[Your natural language query here]" "/path/to/file1.json,/path/to/file2.json"
+pnpm cli parse "[Your natural language query here]" "/path/to/file1.json,/path/to/file2.json"
 ```
 
 The first argument is your natural language query.
@@ -60,5 +76,5 @@ The second argument is a comma-separated list of OpenAPI spec files' paths that 
 For example:
 
 ```bash
-pnpm tsx src/cli/run.ts parse "Fetch customer details from Stripe" "./specs/stripe.json"
+pnpm cli parse "Fetch customer details from Stripe" "./specs/stripe.json"
 ```
