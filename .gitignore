@@ -175,3 +175,5 @@ dist
 
 .DS_Store
 chroma.log
+
+src/playground
