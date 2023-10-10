@@ -115,7 +115,7 @@ export default class Parser {
       openapis,
     );
 
-    cli.info('Shortlist: \n');
+    cli.info('Here are the APIs we are shortlisting for you: \n');
     console.log(shortlist);
 
     for (const api of shortlist) {
