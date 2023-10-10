@@ -182,6 +182,9 @@ export default class Parser {
           path: pathSchema,
         },
       });
+
+      cli.log("Narrowing down the keys that need to be sent...");
+
       cli.info(
         JSON.stringify({
           body: filteredBodySchema,
@@ -202,6 +205,8 @@ export default class Parser {
           path: filteredPathSchema,
         },
       });
+
+      cli.log("Narrowing down the variables that go into the keys...");
 
       cli.info(
         JSON.stringify({
