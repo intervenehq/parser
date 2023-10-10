@@ -6,14 +6,13 @@
 
 ## Introduction
 
-LLMs can do wondrous things, but translating a natural language query into an actionable piece of code is difficult. Despite it generating code well, there's no validation layer that checks for the correctness of APIs that are used by it, which is a subset of what we frequently refer to as "hallucination".
+Parser to translate a natural language query into an actionable piece of code.
 
-Intervene is our quest to try and make LLMs deterministic.
+## Problem
 
-## Example
+GPT4 currently hallucinates more often than not when dealing with APIs.
 
-A good <strong>example</strong> is if you were to to ask GPT4 to write TypeScript to use Stripe's APIs to get a customer, given an email. We've seen it hallucinate often where it will try to fetch a customer via Stripe's customer API by supplying an email, but in practice that's not how it works.
-A customer can only be got through a customerId, and if supplied an email, multiple customers can exist in Stripe. All of this nuance is generally lost because GPT has no additional context of the API in question, and has no capability of going back and checking if the API for the use case is valid.
+We take a user input and a corresponding OpenAPI spec, check which endpoints are the most feasible, pick one, verify the inputs and their types, and give you an expression (or code) that you can eval on your end.
 
 ## How To
 
