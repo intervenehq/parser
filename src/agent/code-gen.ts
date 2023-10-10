@@ -47,11 +47,11 @@ function ${name}() {
 
 export default class CodeGen {
   private parser: Parser;
-  private langauge: CodeGenLanguage;
+  public language: CodeGenLanguage;
 
   constructor(parser: Parser, language: CodeGenLanguage) {
     this.parser = parser;
-    this.langauge = language;
+    this.language = language;
   }
 
   async generateInput(
@@ -62,7 +62,7 @@ export default class CodeGen {
     },
   ) {
     const boilerplate = functionBoilerplate('get_' + params.name + '_params')[
-      this.langauge
+      this.language
     ];
 
     const messages: IChatCompletionMessage[] = [
@@ -91,7 +91,7 @@ export default class CodeGen {
             inputSchema: JSON.stringify(params.inputSchema),
             needsContext: !!Object.keys(params.filteredContext).length,
             context: stringifyContext(params.filteredContext),
-            langauge: this.langauge,
+            langauge: this.language,
           },
         ),
       },
@@ -101,7 +101,7 @@ export default class CodeGen {
           'This is NOT correct response:',
           `\`\`\`${boilerplate}\`\`\``,
           'This is also NOT correct response:',
-          `\`\`\`${this.langauge} ${boilerplate}\`\`\``,
+          `\`\`\`${this.language} ${boilerplate}\`\`\``,
           'This is correct response:',
           boilerplate,
           'IN SHORT: no markdown, no tildes',

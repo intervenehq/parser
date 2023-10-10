@@ -236,6 +236,8 @@ export default class Parser {
         name: 'path',
       });
 
+      await cli.log(`Generating the ${this.codeGen.language} expression...`);
+
       const finalOutput = JSON.stringify({
         provider: api.provider,
         method: api.method,
