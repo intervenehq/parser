@@ -177,3 +177,4 @@ dist
 chroma.log
 
 src/playground
+output.json
