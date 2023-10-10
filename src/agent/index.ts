@@ -15,6 +15,7 @@ import { t } from "~/utils/template";
 import { Options as OraOptions } from "ora";
 import { cli } from "src/cli";
 import chalk from "chalk";
+import path from "path";
 import fs from "fs/promises";
 
 export const objectivePrefix = (
@@ -239,11 +240,12 @@ export default class Parser {
         responseSchema,
       });
 
-      console.log(
-        chalk.blue.bold("Your output has been written to: output.json")
-      );
+      console.log(chalk.blue.bold(""));
 
-      await Bun.write("output.json", finalOutput);
+      const outputPath = path.join(__dirname, "../../output.json");
+      fs.writeFile(outputPath, finalOutput);
+
+      cli.log("Your output has been written to: output.json");
 
       return;
     }
