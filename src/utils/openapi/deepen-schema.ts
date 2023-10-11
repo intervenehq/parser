@@ -4,6 +4,8 @@ import compact from 'lodash/compact';
 import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
 
+import { tokenizedLength } from '~/utils/openapi/chunk-schema';
+
 function deepenSchema(
   fullSchema: JSONSchema7,
   filteredShallowSchema: JSONSchema7,
@@ -54,9 +56,9 @@ function deepenSchema(
 }
 
 function shallowSchema(schema: JSONSchema7) {
-  return omit(schema, [
-    'properties',
-    'items',
+  const newSchema = cloneDeep(schema);
+
+  const omitableProperties: (keyof JSONSchema7)[] = [
     'additionalProperties',
     'patternProperties',
     'definitions',
@@ -68,7 +70,23 @@ function shallowSchema(schema: JSONSchema7) {
     'if',
     'then',
     'else',
-  ]);
+  ];
+
+  delete newSchema.properties;
+  if (typeof newSchema.items === 'object' && !Array.isArray(newSchema.items)) {
+    delete newSchema.items;
+  } else {
+    omitableProperties.push('items');
+  }
+
+  for (const property of omitableProperties) {
+    // keep JSONschema validation keywords that are not too long
+    if (tokenizedLength(newSchema[property] ?? {}) > 100) {
+      delete newSchema[property];
+    }
+  }
+
+  return omit(schema, ['items']);
 }
 
 export { deepenSchema, shallowSchema };

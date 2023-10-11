@@ -1,4 +1,5 @@
 import BaseChatCompletion, {
+  ChatCompletionModels,
   GenerateChatCompletion,
   GenerateStructuredChatCompletion,
 } from '~/chat-completion/base';
@@ -6,11 +7,12 @@ import OpenAIChatCompletion from '~/chat-completion/openai';
 
 export default class ChatCompletion extends BaseChatCompletion<any> {
   client: BaseChatCompletion<any>;
+  defaultModel = ChatCompletionModels.critical;
 
-  constructor() {
+  constructor(useTrivialModelsByDefault: boolean) {
     super();
 
-    this.client = new OpenAIChatCompletion();
+    this.client = new OpenAIChatCompletion({}, useTrivialModelsByDefault);
   }
 
   generateStructured: GenerateStructuredChatCompletion = (...params) => {

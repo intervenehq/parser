@@ -6,7 +6,9 @@
 
 ## Introduction
 
-Parser to generate type-safe and context-safe API calls given a natural language query.
+*Use LLMs to generate type-safe and context-safe API calls from natural language.*
+
+<br/>
 
 Here's a quick demo:
 
@@ -29,19 +31,38 @@ Here's a sample output:
     "responseSchema": "<schema of the Response>"
   }
 ```
-It captures what inputs are needed and how to call the API, and gives you functions that can be eval'd on your end.
 
 ## Problem
 
-GPT4 currently hallucinates more often than not when dealing with APIs.
+The core principle of the internet revolves around free inter-connectivity. That has stayed true for client-server interactions but server-to-server communications aren't as streamlined.
 
-We take a user input and a corresponding OpenAPI spec, check which endpoints are the most feasible, pick one, verify the inputs and their types, and give you an expression (or code) that you can eval on your end.
+The reason is simple: *human creativity*. Every API has its own special headers, weird parameter names and the invisible context (eg. you need to create customer before creating a subscription in stripe).
 
-## How To
+AI can solve this. But the foundation is not laid yet.
 
-You can follow the guide to install dependencies and try the tool via our CLI.
+## Solution
 
-To install dependencies:
+A framework to anchor the AI. Break the problem down into byte sized pieces and let the AI take atomic decisions.
+
+The inspiration is human problem-solving, just like a software engineer:
+
+* Remembers the objective
+* Searches relevant APIs
+* Reviews API specifications
+  * Zooms in on chunks
+  * Shortlists properties
+  * Goes to the next chunk, repeat
+  * Zooms back out with a final shortlist
+* Matches available data with required parameters\
+  The same zoom-in and zoom-out happens here as well
+* Writes the API call
+
+
+## Try it!
+
+We have a CLI for you. Please clone the repository
+
+### Install dependencies
 
 ```bash
 pnpm i
@@ -51,22 +72,9 @@ or
 npm install
 ```
 
-## CLI Usage
+### Configure
 
-Running the CLI looks like below. You can run the help command to find out more.
-
-```bash
-pnpm cli help
-```
-or
-```bash
-npx tsx src/cli/run.ts help
-```
-
-### Configure Command
-
-This command allows you to set up the OpenAI API key and choose a vector database (either ChromaDB or Vectra, an in memory vector DB) along with its respective API key.
-
+You will need to configure the CLI by running the `configure` command:
 ```bash
 pnpm cli configure
 ```
@@ -75,25 +83,41 @@ or
 npx tsx src/cli/run.ts configure
 ```
 
-Follow the prompts to input or update the keys.
+(You can also alternatively use Environment Variables, see [`src/utils/config.ts`](https://github.com/tryintervene/parser/blob/main/src/utils/config.ts))
+
+
+https://github.com/tryintervene/parser/blob/d14bb84f56057fe1740ab34e07a1033f82a17219/src/cli/index.ts
 
 ### Parse Command
 
-This command lets you parse a natural language query and give you an appropriate command. The OpenAPI spec augments the LLM's knowledge on the specific API providers needed for the task.
+Use this command to generate an API call:
 
 ```bash
 pnpm cli parse "[Your natural language query here]" "/path/to/file1.json,/path/to/file2.json"
 ```
-or
-```bash
-npx tsx src/cli/run.ts parse "[Your natural language query here]" "/path/to/file1.json,/path/to/file2.json"
-```
 
-The first argument is your natural language query.
-The second argument is a comma-separated list of OpenAPI spec files' paths that you want to load.
+Additionally, the `--context` option allows you to provide historical context for the API. Think of it as supplying a collection of variables to be referenced within a statement.
 
-For example:
+### Help
+To learn about the commands in more details, please refer to the help command
 
 ```bash
-pnpm cli parse "Fetch customer details from Stripe" "./specs/stripe.json"
+pnpm cli help
 ```
+
+## This is expensive!
+
+Indeed, the tool makes numerous LLM calls.
+
+You can use GPT 3.5 (or equivalent) which will make this a lot faster, cheaper but less accurate. You can go this route for simpler API calls that need to extract data from the user prompt. You can use the `--trivial` flag to do this
+
+However, the code can be optimized to use the less capable models for selective tasks. Open to PRs :)
+
+## What about other LLMs?
+This project works only with OpenAI models for now. I will be exploring other LLMs as well. Let me know [which one you want by opening an issue here](https://github.com/tryintervene/parser/issues/new?title=Request%20to%20integrate%20LLM:%20[LLM]&body=Hi,%20can%20you%20please%20add%20the%20following%20LLM%20to%20the%20parser:%20) or feel free to open a PR!
+
+## Credits
+
+Credits to LangChain and LlamaIndex for the inspiration for some of the techniques used in the project.
+
+Special credits to [@rohanmayya](https://github.com/rohanmayya) for helping lay the foundation for this project.

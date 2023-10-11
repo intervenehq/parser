@@ -86,6 +86,7 @@ export default class Parser {
     loggable: Loggable = cli,
     fullReindex: boolean = false,
     language: CodeGenLanguage = CodeGenLanguage.javascript,
+    trivial: boolean,
   ) {
     this.externalResourceDirectory = new ExternalResourceDirectory(
       this,
@@ -96,7 +97,7 @@ export default class Parser {
     this.codeGen = new CodeGen(this, language);
     this.logger = loggable;
 
-    this.chatCompletion = new ChatCompletion();
+    this.chatCompletion = new ChatCompletion(trivial);
   }
 
   parse = async (

@@ -6,7 +6,6 @@ import Parser, {
   OperationMetdata,
   operationPrefix,
 } from '~/agent/index';
-import { ChatCompletionModels } from '~/chat-completion/base';
 
 import { stringifyContext } from '~/utils/context';
 import { chunkSchema, getSubSchema } from '~/utils/openapi/chunk-schema';
@@ -52,7 +51,6 @@ export default class ExternalResourceEvaluator {
 
     const { is_this_the_right_external_resource, reason } =
       await this.parser.chatCompletion.generateStructured({
-        model: ChatCompletionModels.critical,
         messages: [
           {
             content: message,
@@ -148,7 +146,6 @@ export default class ExternalResourceEvaluator {
           generatorOutputSchema: Zod.object({
             shortlist: Zod.array(Zod.enum(propertyNames as [string])),
           }),
-          model: ChatCompletionModels.critical,
         },
       );
 

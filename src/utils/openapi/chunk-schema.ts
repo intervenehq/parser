@@ -1,6 +1,7 @@
 import { encode } from 'gpt-3-encoder';
 import { JSONSchema7 } from 'json-schema';
 import cloneDeep from 'lodash/cloneDeep';
+import { JsonValue } from 'type-fest';
 
 import { shallowSchema } from '~/utils/openapi/deepen-schema';
 
@@ -114,7 +115,7 @@ function chunkProperties(
   return { required: requiredProperties, chunks };
 }
 
-function tokenizedLength(property: JSONSchema7) {
+export function tokenizedLength(property: JsonValue | object) {
   if (typeof property === 'boolean') return 1;
 
   const output = JSON.stringify(property);

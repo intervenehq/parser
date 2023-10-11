@@ -9,7 +9,7 @@ export const openaiEmbeddingFunction: EmbeddingFunction = async (input) => {
 
   const response = await openaiClient.embeddings.create({
     input,
-    model: getConfig()['OPENAI_EMBEDDING_MODEL'] ?? 'text-embedding-ada-002',
+    model: getConfig().OPENAI_EMBEDDING_MODEL ?? 'text-embedding-ada-002',
   });
 
   return Object.fromEntries(
