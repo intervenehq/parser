@@ -93,6 +93,7 @@ pnpm cli parse "[Your natural language query here]" "/path/to/file1.json,/path/t
 ```
 
 ### Help
+To learn about the commands in more details, please refer to the help command
 
 ```bash
 pnpm cli help
