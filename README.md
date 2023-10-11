@@ -100,6 +100,8 @@ Additionally, the `--context` option allows you to provide historical context fo
 
 You can look for demo files in [`/demo`](https://github.com/tryintervene/parser/blob/main/demo)
 
+The output generated has JS code by default, you can use the `-l` flag to switch between [javascript, python, ruby, php]
+
 ### Help
 To learn about the commands in more details, please refer to the help command
 
