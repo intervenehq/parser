@@ -1,6 +1,6 @@
 import { JSONSchema7 } from 'json-schema';
 import cloneDeep from 'lodash/cloneDeep';
-import { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types';
+import { OpenAPIV2, OpenAPIV3 } from 'openapi-types';
 
 import { $deref, OperationObject } from '~/utils/openapi';
 import { getDefaultContentType } from '~/utils/openapi/content-type';

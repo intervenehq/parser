@@ -62,7 +62,7 @@ export default class ExternalResourceDirectory {
             api as OpenAPIV3.Document,
             httpMethod as OpenAPIV2.HttpMethods,
             path,
-          ) as OperationObject,
+          ),
         )!;
 
         // Add parameters to keyPathMap

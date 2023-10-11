@@ -1,4 +1,8 @@
+import fs from 'fs';
+import cloneDeep from 'lodash/cloneDeep';
 import { OpenAPI, OpenAPIV2, OpenAPIV3 } from 'openapi-types';
+
+import { OperationObject } from '~/utils/openapi';
 
 let data: OpenAPIV3.Document;
 
@@ -97,7 +101,7 @@ export function dereferencePath(
   httpMethod: OpenAPIV2.HttpMethods,
   endpointPath: string,
 ) {
-  data = jsonData as OpenAPIV3.Document;
+  data = cloneDeep(jsonData) as OpenAPIV3.Document;
 
   const refsForPath = processEndpoint(endpointPath);
   removeCircularRefs(refsForPath);
@@ -108,5 +112,5 @@ export function dereferencePath(
   const endpointData = data.paths[endpointPath] || {};
   flattenRefs(endpointData);
 
-  return data?.paths![endpointPath]![httpMethod];
+  return data?.paths![endpointPath]![httpMethod] as OperationObject;
 }
