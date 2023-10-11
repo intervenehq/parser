@@ -30,6 +30,13 @@ export default class EmbeddingStore {
       .addColumn('vectors', 'text')
       .addColumn('metadata_object_hash', 'text')
       .execute();
+
+    await this.kysely.schema
+      .createIndex('embeddings_input')
+      .on('embeddings')
+      .ifNotExists()
+      .column('input')
+      .execute();
   }
 
   async retrieveEmbeddings(input: string[]) {
@@ -52,6 +59,36 @@ export default class EmbeddingStore {
     await this.setup();
     if (!embeddings.length) return;
 
-    await this.kysely.insertInto('embeddings').values(embeddings).execute();
+    const existingEmbeddings = (
+      await this.kysely
+        .selectFrom('embeddings')
+        .select('embeddings.input')
+        .where(
+          'embeddings.input',
+          'in',
+          embeddings.map((e) => e.input),
+        )
+        .execute()
+    ).map((e) => e.input);
+
+    const toUpdate = embeddings.filter(
+      (e) => !existingEmbeddings.includes(e.input),
+    );
+
+    for (const embedding of toUpdate) {
+      await this.kysely
+        .updateTable('embeddings')
+        .set({
+          vectors: embedding.vectors,
+          metadata_object_hash: embedding.metadata_object_hash,
+        })
+        .where('input', '=', embedding.input)
+        .execute();
+    }
+
+    await this.kysely
+      .insertInto('embeddings')
+      .values(embeddings.filter((e) => !existingEmbeddings.includes(e.input)))
+      .execute();
   }
 }

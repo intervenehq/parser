@@ -1,4 +1,4 @@
-import { Collection } from 'chromadb';
+import { Collection as ChromaCollection } from 'chromadb';
 
 import VectorStoreItem, { IVectorStoreItem } from '~/embeddings/Item';
 
@@ -6,6 +6,10 @@ import VectorStoreCollection from '../Collection';
 
 export type FindOrCreateCollection<CollectionT = any> = (
   name: string,
+  /**
+   * use this carefully, not all vector stores support metadata
+   */
+  metadata?: Record<string, any>,
 ) => Promise<VectorStoreCollection<CollectionT>>;
 
 export type CreateItems<CollectionT = any> = (
@@ -13,10 +17,14 @@ export type CreateItems<CollectionT = any> = (
   items: IVectorStoreItem[],
 ) => Promise<void>;
 
+export type PurgeCollection<CollectionT = any> = (
+  collection: VectorStoreCollection<CollectionT>,
+) => Promise<VectorStoreCollection<CollectionT>>;
+
 export type QueryItems<CollectionT = any, ItemT = any> = (
   collection: VectorStoreCollection<CollectionT>,
   query: number[],
-  where?: Parameters<Collection['query']>[0]['where'],
+  where?: Parameters<ChromaCollection['query']>[0]['where'],
   limit?: number,
 ) => Promise<VectorStoreItem<ItemT>[]>;
 
@@ -34,4 +42,6 @@ export default abstract class BaseVectorStoreClient<
   abstract createItems: CreateItems<CollectionT>;
 
   abstract queryItems: QueryItems<CollectionT, ItemT>;
+
+  abstract purgeCollection: PurgeCollection<CollectionT>;
 }

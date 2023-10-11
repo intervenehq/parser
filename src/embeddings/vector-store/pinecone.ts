@@ -1,4 +1,5 @@
 import { Index, Pinecone, PineconeRecord } from '@pinecone-database/pinecone';
+
 import VectorStoreCollection from '~/embeddings/Collection';
 import VectorStoreItem, { ItemMetadata } from '~/embeddings/Item';
 
@@ -7,6 +8,7 @@ import { getConfig } from '~/utils/config';
 import BaseVectorStoreClient, {
   CreateItems,
   FindOrCreateCollection,
+  PurgeCollection,
   QueryItems,
 } from './base';
 
@@ -29,7 +31,7 @@ export default class PineconeClient extends BaseVectorStoreClient<
   findOrCreateCollection: FindOrCreateCollection<Index> = async (
     name: string,
   ) => {
-    let index = this.client.Index(getConfig()['PINECONE_INDEX']);
+    const index = this.client.Index(getConfig()['PINECONE_INDEX']);
 
     return new VectorStoreCollection({
       name: name,
@@ -80,5 +82,10 @@ export default class PineconeClient extends BaseVectorStoreClient<
         });
       }) ?? []
     );
+  };
+
+  purgeCollection: PurgeCollection<Index> = async (collection) => {
+    await collection.object.deleteAll();
+    return collection;
   };
 }

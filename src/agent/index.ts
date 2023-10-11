@@ -84,9 +84,13 @@ export default class Parser {
 
   constructor(
     loggable: Loggable = cli,
+    fullReindex: boolean = false,
     language: CodeGenLanguage = CodeGenLanguage.javascript,
   ) {
-    this.externalResourceDirectory = new ExternalResourceDirectory(this);
+    this.externalResourceDirectory = new ExternalResourceDirectory(
+      this,
+      fullReindex,
+    );
     this.externalResourceEvaluator = new ExternalResourceEvaluator(this);
     this.contextProcessor = new ContextProcessor(this);
     this.codeGen = new CodeGen(this, language);

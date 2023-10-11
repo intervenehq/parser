@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import newGithubIssueUrl from 'new-github-issue-url';
 import ora, { Ora, Options as OraOptions } from 'ora';
 import prompts from 'prompts';
+
 import { CodeGenLanguage } from '~/agent/code-gen';
 import Parser from '~/agent/index';
 
@@ -55,6 +56,10 @@ class CLI {
       .option(
         '-c, --context <context>',
         'A JSON object string or path to file containing the object. The keys should be the names of the context variables and the values will be the JSON schemas of those variables.',
+      )
+      .option(
+        '-r, --reindex',
+        'Fully reindex OpenAPI embeddings in the vector store. Helpful if you changed the vector store.',
       )
       .action(this.parse);
 
@@ -207,7 +212,7 @@ class CLI {
   private async parse(
     objective: string,
     $files: string,
-    options: { language: CodeGenLanguage; context: string },
+    options: { language: CodeGenLanguage; context: string; reindex: boolean },
   ) {
     const files = ($files ?? '').split(',');
     process.env = { ...getConfig() };
@@ -219,9 +224,11 @@ class CLI {
           await fs.promises.readFile(options.context, 'utf8'),
         );
       }
-    } catch (e) {}
+    } catch (e) {
+      /* empty */
+    }
 
-    const parser = new Parser(this, options.language);
+    const parser = new Parser(this, !!options.reindex, options.language);
 
     await parser.parse(objective, context, files);
   }

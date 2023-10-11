@@ -1,6 +1,7 @@
 import BaseVectorStoreClient, {
   CreateItems,
   FindOrCreateCollection,
+  PurgeCollection,
   QueryItems,
 } from '~/embeddings/vector-store/base';
 import ChromaDBClient from '~/embeddings/vector-store/chromadb';
@@ -36,17 +37,15 @@ class VectorStore extends BaseVectorStoreClient<BaseVectorStoreClient<any>> {
 
   async connect() {}
 
-  findOrCreateCollection: FindOrCreateCollection = (...params) => {
-    return this.client.findOrCreateCollection(...params);
-  };
+  findOrCreateCollection: FindOrCreateCollection = (...params) =>
+    this.client.findOrCreateCollection(...params);
 
-  createItems: CreateItems = (...params) => {
-    return this.client.createItems(...params);
-  };
+  createItems: CreateItems = (...params) => this.client.createItems(...params);
 
-  queryItems: QueryItems = (...params) => {
-    return this.client.queryItems(...params);
-  };
+  queryItems: QueryItems = (...params) => this.client.queryItems(...params);
+
+  purgeCollection: PurgeCollection = (...params) =>
+    this.client.purgeCollection(...params);
 }
 
 const vectorStore = new VectorStore();

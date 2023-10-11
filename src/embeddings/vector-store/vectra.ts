@@ -9,6 +9,7 @@ import { getCurrentDirectory } from '~/utils/current-directory';
 import BaseVectorStoreClient, {
   CreateItems,
   FindOrCreateCollection,
+  PurgeCollection,
   QueryItems,
 } from './base';
 
@@ -64,5 +65,11 @@ export default class VectraClient extends BaseVectorStoreClient<
         distance: item.norm,
       });
     });
+  };
+
+  purgeCollection: PurgeCollection<LocalIndex> = async (collection) => {
+    await collection.object.deleteIndex();
+
+    return this.findOrCreateCollection(collection.name);
   };
 }

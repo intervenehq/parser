@@ -31,10 +31,12 @@ export type ExternalResourcePath = string & {
 export default class ExternalResourceDirectory {
   private parser: Parser;
   private embeddingStore: EmbeddingStore;
+  private fullReindex: boolean;
 
-  constructor(parser: Parser) {
+  constructor(parser: Parser, fullReindex: boolean) {
     this.parser = parser;
     this.embeddingStore = new EmbeddingStore();
+    this.fullReindex = fullReindex;
   }
 
   embed = async (api: OpenAPI.Document) => {
@@ -44,7 +46,7 @@ export default class ExternalResourceDirectory {
 
     // <keywords>: [<api1>, <api2>]
     const pathMapping = new Map<string, Set<string>>();
-    const collection = await vectorStore.findOrCreateCollection('openapi');
+    let collection = await vectorStore.findOrCreateCollection('openapi');
 
     // Iterate over all paths in the API
     for (const path in api.paths) {
@@ -78,6 +80,10 @@ export default class ExternalResourceDirectory {
       }
     }
 
+    if (this.fullReindex) {
+      collection = await vectorStore.purgeCollection(collection);
+    }
+
     // Process keys in batches
     await this.processKeysInBatches(pathMapping, api, collection);
 
@@ -105,6 +111,7 @@ export default class ExternalResourceDirectory {
             trimmedKey = trimmedKey.slice(0, -100);
           }
 
+          // eslint-disable-next-line no-control-regex
           trimmedKey = trimmedKey.replace(/[^\x00-\x7F]/g, '');
 
           return [trimmedKey, originalKey];
@@ -135,21 +142,18 @@ export default class ExternalResourceDirectory {
       const vectorStoreItems: IVectorStoreItem[] = [];
       const embeddingsToStore: EmbeddingsTable[] = [];
 
+      console.log('Embedding', keysToEmbed.length, 'keys');
       const embeddings = await createEmbeddings(keysToEmbed);
 
       for (const trimmedKey of Object.keys(trimmedToOriginalKeyMap)) {
-        let vectorStoreItem: IVectorStoreItem;
+        let vectorStoreItem: IVectorStoreItem | undefined;
+
         if (keysToEmbed.includes(trimmedKey)) {
-          const embedding = storedEmbeddings.find(
-            (embedding) => embedding.input === trimmedKey,
-          );
-          if (embedding) {
-            vectorStoreItem = {
-              id: trimmedKey,
-              embeddings: embedding.vectors,
-              metadata: metadataMap[trimmedKey],
-            };
-          }
+          vectorStoreItem = {
+            id: trimmedKey,
+            embeddings: embeddings[trimmedKey],
+            metadata: metadataMap[trimmedKey],
+          };
 
           embeddingsToStore.push({
             input: trimmedKey,
@@ -158,16 +162,21 @@ export default class ExternalResourceDirectory {
           });
         }
 
-        vectorStoreItem ||= {
-          id: trimmedKey,
-          embeddings:
-            embeddings[trimmedKey] ??
-            storedEmbeddings.find(({ input }) => input === trimmedKey)?.vectors,
-          metadata: metadataMap[trimmedKey],
-        };
+        if (this.fullReindex) {
+          vectorStoreItem ||= {
+            id: trimmedKey,
+            embeddings:
+              embeddings[trimmedKey] ??
+              storedEmbeddings.find(({ input }) => input === trimmedKey)
+                ?.vectors,
+            metadata: metadataMap[trimmedKey],
+          };
+        }
 
-        vectorStoreItems.push(vectorStoreItem);
+        !!vectorStoreItem && vectorStoreItems.push(vectorStoreItem);
       }
+
+      console.log('Storing', vectorStoreItems.length, 'embeddings to store');
 
       // Store embeddings and create vector store items
       await this.embeddingStore.storeEmbeddings(embeddingsToStore);
@@ -247,11 +256,12 @@ export default class ExternalResourceDirectory {
         provider,
         method,
         path,
-        description:
+        description: stripHtml(
           operationObject.description ??
-          operationObject.summary ??
-          operationObject.operationId ??
-          match,
+            operationObject.summary ??
+            operationObject.operationId ??
+            match,
+        ).result,
       });
     }
 

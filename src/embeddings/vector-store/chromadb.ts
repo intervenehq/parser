@@ -6,6 +6,7 @@ import VectorStoreItem from '~/embeddings/Item';
 import BaseVectorStoreClient, {
   CreateItems,
   FindOrCreateCollection,
+  PurgeCollection,
   QueryItems,
 } from './base';
 
@@ -26,14 +27,26 @@ export default class ChromaDBClient extends BaseVectorStoreClient<
   }
 
   findOrCreateCollection: FindOrCreateCollection<Collection> = async (
-    name: string,
+    name,
+    metadata,
   ) => {
-    const collection = await this.client.getOrCreateCollection({ name });
+    const collection = await this.client.getOrCreateCollection({
+      name,
+      metadata,
+    });
 
-    return new VectorStoreCollection({ name: name, object: collection });
+    return new VectorStoreCollection({
+      name: name,
+      object: collection,
+      metadata: collection.metadata,
+    });
   };
 
   createItems: CreateItems<Collection> = async (collection, items) => {
+    if (!items.length) {
+      return;
+    }
+
     const chromaItems = await collection.object.add({
       ids: items.map((item) => item.id),
       embeddings: items.map((item) => item.embeddings),
@@ -68,5 +81,11 @@ export default class ChromaDBClient extends BaseVectorStoreClient<
         distance: result.distances![0][index]!,
       });
     });
+  };
+
+  purgeCollection: PurgeCollection<Collection> = async (collection) => {
+    await this.client.deleteCollection(collection);
+
+    return this.findOrCreateCollection(collection.name, collection.metadata);
   };
 }
