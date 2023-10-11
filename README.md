@@ -49,12 +49,12 @@ The inspiration is human problem-solving, just like a software engineer:
 * Remembers the objective
 * Searches relevant APIs
 * Reviews API specifications
-  * Zooms in on chunks
+  * Zooms in on chunks of properties
   * Shortlists properties
   * Goes to the next chunk, repeat
   * Zooms back out with a final shortlist
-* Matches available data with required parameters\
-  The same zoom-in and zoom-out happens here as well
+* Matches available data with required parameters
+  * The same zoom-in and zoom-out happens here as well
 * Writes the API call
 
 
