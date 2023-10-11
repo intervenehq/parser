@@ -39,9 +39,7 @@ export default class ExternalResourceDirectory {
   }
 
   embed = async (api: OpenAPI.Document) => {
-    cli.log(
-      'Embedding your OpenAPI spec... (This might take a while for Pinecone and Vectra)',
-    );
+    cli.log('Preparing OpenAPI specs for embedding');
 
     // <keywords>: [<api1>, <api2>]
     const pathMapping = new Map<string, Set<string>>();
@@ -82,6 +80,10 @@ export default class ExternalResourceDirectory {
     if (this.fullReindex) {
       collection = await vectorStore.purgeCollection(collection);
     }
+
+    cli.log(
+      'Embedding OpenAPI specs... (This might take a while for Pinecone and Vectra)',
+    );
 
     // Process keys in batches
     await this.processKeysInBatches(pathMapping, api, collection);
