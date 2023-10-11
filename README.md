@@ -6,7 +6,9 @@
 
 ## Introduction
 
-Parser to generate type-safe and context-safe API calls given a natural language query.
+*Use LLMs to generate type-safe and context-safe API calls given a natural language query.*
+
+<br/>
 
 Here's a quick demo:
 
@@ -29,13 +31,27 @@ Here's a sample output:
     "responseSchema": "<schema of the Response>"
   }
 ```
-It captures what inputs are needed and how to call the API, and gives you functions that can be eval'd on your end.
 
 ## Problem
 
-GPT4 currently hallucinates more often than not when dealing with APIs.
+The core of internet is free inter-connectivity. That has stayed true for client-server interactions but server-to-server communications aren't as streamlined.
 
-We take a user input and a corresponding OpenAPI spec, check which endpoints are the most feasible, pick one, verify the inputs and their types, and give you an expression (or code) that you can eval on your end.
+The reason is simple: *human creativity*. Every API has its own special headers, weird parameter names and the invisible context (eg. you need to create customer before creating a subscription in stripe).
+
+AI can solve this. But the foundation is not laid yet.
+
+## Solution
+
+A framework to hinge the AI. Break the problem down into byte sized pieces and let the AI take atomic decisions.
+
+The inspiration is human problem-solving, just like a software engineer:
+
+* Remembers the objective
+* Searches relevant APIs
+* Reviews API specifications
+* Matches available data with required parameters
+* Writes the API call
+
 
 ## How To
 
@@ -97,3 +113,7 @@ For example:
 ```bash
 pnpm cli parse "Fetch customer details from Stripe" "./specs/stripe.json"
 ```
+
+## Credits
+
+Special credits to @rohanmayya for helping lay foundation for this project.
