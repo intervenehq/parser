@@ -9,7 +9,9 @@
 Parser to generate type-safe and context-safe API calls given a natural language query.
 
 Here's a quick demo:
-https://github.com/tryintervene/parser/assets/32911377/6809b796-638e-41dc-aa75-6d3465d76988
+https://github.com/tryintervene/parser/assets/9914480/8797935b-6335-46f1-a50d-b2ce20091a6a
+
+
 
 
 Here's a sample output:
