@@ -137,6 +137,9 @@ However, the code can be optimized to use the less capable models for selective 
 ## What about other LLMs?
 This project works only with OpenAI models for now. I will be exploring other LLMs as well. Let me know [which one you want by opening an issue here](https://github.com/tryintervene/parser/issues/new?title=Request%20to%20integrate%20LLM:%20[LLM]&body=Hi,%20can%20you%20please%20add%20the%20following%20LLM%20to%20the%20parser:%20) or feel free to open a PR!
 
+## I want to contribute
+Awesome! PRs and issues are welcome!
+
 ## Credits
 
 Credits to LangChain and LlamaIndex for the inspiration for some of the techniques used in the project.
