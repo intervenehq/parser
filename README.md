@@ -116,4 +116,4 @@ pnpm cli parse "Fetch customer details from Stripe" "./specs/stripe.json"
 
 ## Credits
 
-Special credits to @rohanmayya for helping lay foundation for this project.
+Special credits to [@rohanmayya](https://github.com/rohanmayya) for helping lay foundation for this project.
