@@ -4,6 +4,8 @@
   <img src="public/images/logo.jpg" alt="Intervene Parser Logo" width="200" height="200">
 </p>
 
+[![](https://dcbadge.vercel.app/api/server/tsgtfUEvWk?compact=true)](https://discord.gg/tsgtfUEvWk)
+
 ## Introduction
 
 *Use LLMs to generate type-safe and context-safe API calls from natural language.*
