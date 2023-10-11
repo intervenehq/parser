@@ -1,4 +1,3 @@
-import fs from 'fs';
 import cloneDeep from 'lodash/cloneDeep';
 import { OpenAPI, OpenAPIV2, OpenAPIV3 } from 'openapi-types';
 
