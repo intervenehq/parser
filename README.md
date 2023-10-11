@@ -98,12 +98,24 @@ pnpm cli parse "[Your natural language query here]" "/path/to/file1.json,/path/t
 
 Additionally, the `--context` option allows you to provide historical context for the API. Think of it as supplying a collection of variables to be referenced within a statement.
 
+You can look for demo files in [`/demo`](https://github.com/tryintervene/parser/blob/main/demo)
+
 ### Help
 To learn about the commands in more details, please refer to the help command
 
 ```bash
 pnpm cli help
 ```
+
+```bash
+pnpm cli help parse
+```
+
+## This looks cool, but what about prod?
+
+With a few tweaks, you can use this project in your production environment. 
+
+If you're interested in a hosted solution, please [fill out this quick form](https://tally.so/r/wzMJ8a), and I will get back to you in no time!
 
 ## This is expensive!
 
