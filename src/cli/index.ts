@@ -61,6 +61,7 @@ class CLI {
         '-r, --reindex',
         'Fully reindex OpenAPI embeddings in the vector store. Helpful if you changed the vector store.',
       )
+      .option('--trivial', 'Use less capable models like GPT 3.5')
       .action(this.parse);
 
     this.program.hook('preAction', async (_, action) => {
@@ -88,15 +89,15 @@ class CLI {
   }
 
   async info(...text: string[]) {
-    console.log(chalk.white(...text));
+    console.info(chalk.white(...text));
   }
 
   async warn(...text: string[]) {
-    console.log(chalk.yellow(...text));
+    console.warn(chalk.yellow(...text));
   }
 
-  async error(...text: string[]) {
-    console.log(chalk.red(...text));
+  error(...text: string[]): never {
+    console.error(chalk.red(...text));
 
     const actionName = this.currentAction?.name();
 
@@ -108,9 +109,9 @@ class CLI {
         [
           'Hey,',
           'I encountered this error when running the parser:',
-          'action: {{actionName}}',
-          'arguments: {{args}}',
-          'error: \n{{error}}',
+          'action: `{{actionName}}`',
+          'arguments: `{{args}}`',
+          'error: \n```{{error}}```',
         ],
         {
           actionName,
@@ -121,7 +122,7 @@ class CLI {
     });
 
     this.program.error(
-      'Unexpected error occurred. If you think this is a bug, please click this link to open a GitHub issue: ' +
+      'Unexpected error occurred. \n\nIf you think this is a bug, please click this link to open a GitHub issue: ' +
         url,
     );
   }
@@ -212,7 +213,12 @@ class CLI {
   private async parse(
     objective: string,
     $files: string,
-    options: { language: CodeGenLanguage; context: string; reindex: boolean },
+    options: {
+      language: CodeGenLanguage;
+      context: string;
+      reindex: boolean;
+      trivial: boolean;
+    },
   ) {
     const files = ($files ?? '').split(',');
     process.env = { ...getConfig() };
@@ -228,7 +234,12 @@ class CLI {
       /* empty */
     }
 
-    const parser = new Parser(this, !!options.reindex, options.language);
+    const parser = new Parser(
+      this,
+      !!options.reindex,
+      options.language,
+      options.trivial,
+    );
 
     await parser.parse(objective, context, files);
   }

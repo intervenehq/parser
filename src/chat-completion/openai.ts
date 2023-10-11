@@ -2,6 +2,7 @@ import { ChatCompletionCreateParamsBase } from 'node_modules/openai/resources/ch
 import OpenAI, { ClientOptions } from 'openai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
+import { cli } from 'src/cli';
 import BaseChatCompletion, {
   ChatCompletionModels,
   GenerateChatCompletion,
@@ -15,15 +16,24 @@ const MODELS = {
 
 export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
   client: OpenAI;
+  defaultModel: ChatCompletionModels;
 
-  constructor(clientOptions: ClientOptions = {}) {
+  constructor(
+    clientOptions: ClientOptions = {},
+    useTrivialModelsByDefault: boolean,
+  ) {
     super();
+    this.defaultModel = useTrivialModelsByDefault
+      ? ChatCompletionModels.trivial
+      : ChatCompletionModels.critical;
     this.client = new OpenAI(clientOptions);
   }
 
   generate: GenerateChatCompletion = async (params, extraArgs) => {
+    const model = params.model ?? this.defaultModel;
+
     const response = await this.client.chat.completions.create({
-      model: MODELS[params.model],
+      model: MODELS[model],
       messages: params.messages.map((message) => ({
         role: message.role,
         content: message.content,
@@ -43,6 +53,7 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     params,
     extraArgs,
   ) => {
+    const model = params.model ?? this.defaultModel;
     const messages: ChatCompletionCreateParamsBase['messages'] = [
       ...params.messages.map((message) => ({
         role: message.role,
@@ -55,7 +66,7 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     ];
 
     const response = await this.client.chat.completions.create({
-      model: MODELS[params.model],
+      model: MODELS[model],
       messages,
       function_call: { name: params.generatorName },
       functions: [
@@ -92,7 +103,7 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
     });
 
     const response2 = await this.client.chat.completions.create({
-      model: MODELS[params.model],
+      model: MODELS[model],
       messages,
       function_call: { name: params.generatorName },
       functions: [
@@ -117,9 +128,13 @@ export default class OpenAIChatCompletion extends BaseChatCompletion<OpenAI> {
       >;
     }
 
-    throw new Error(
-      'GPT could not call a function even after retrying: ' +
-        JSON.stringify(parseResult2.error.errors),
+    cli.error(
+      `GPT could not call a function even after retrying: ${JSON.stringify(
+        parseResult2.error.errors,
+      )}\n\nHere is the prompt: \n${params.messages
+        .map((m) => m.content)
+        .join('\n')}`,
     );
+    throw 'failure';
   };
 }

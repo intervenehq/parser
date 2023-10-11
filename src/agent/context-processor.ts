@@ -6,7 +6,6 @@ import Parser, {
   OperationMetdata,
   operationPrefix,
 } from '~/agent/index';
-import { ChatCompletionModels } from '~/chat-completion/base';
 
 import { chunkSchema, getSubSchema } from '~/utils/openapi/chunk-schema';
 import { deepenSchema, shallowSchema } from '~/utils/openapi/deepen-schema';
@@ -106,7 +105,7 @@ export default class ContextProcessor {
                   {
                     inputSchema: JSON.stringify(params.inputSchema),
                     key,
-                    chunkSchema: JSON.stringify(params.inputSchema),
+                    chunkSchema: JSON.stringify(chunkSchema),
                   },
                 ),
               },
@@ -117,7 +116,6 @@ export default class ContextProcessor {
             generatorOutputSchema: Zod.object({
               shortlist: Zod.array(Zod.enum(propertyNames as [string])),
             }),
-            model: ChatCompletionModels.critical,
           });
 
         const subSchema = getSubSchema(chunkSchema, shortlist);
@@ -167,7 +165,6 @@ export default class ContextProcessor {
       generatorOutputSchema: Zod.object({
         shortlist: Zod.array(Zod.enum(Object.keys(params.context) as [string])),
       }),
-      model: ChatCompletionModels.critical,
     });
 
     return shortlist;

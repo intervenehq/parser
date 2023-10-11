@@ -5,10 +5,7 @@ import Parser, {
   OperationMetdata,
   operationPrefix,
 } from '~/agent/index';
-import {
-  ChatCompletionModels,
-  IChatCompletionMessage,
-} from '~/chat-completion/base';
+import { IChatCompletionMessage } from '~/chat-completion/base';
 
 import { t } from '~/utils/template';
 
@@ -74,13 +71,13 @@ export default class CodeGen {
         '{{/if}}',
         'Your task is to generate a function in {{language}} that follows exactly this format:',
         '```' + boilerplate + '```',
-        'Where it says <expression>, this function needs to return a value that satisfies the following JSON schema:',
+        'Replace <expression>, with a value that satisfies the following JSON schema (call it returnSchema):',
         '```{{inputSchema}}```',
         'Rules:',
         '1. You can only use data hidden in the objective. You must use it directly.',
         '2. You must not assume or imagine any piece of data.',
-        '3. You must reply with null if the expression can not be generated.',
-        '4. You must reply only with the JS expression. No comments or explanations.',
+        '3. You must reply only with the JS expression. No comments or explanations.',
+        '4. The generated function must return a value that complies with the given returnSchema.',
         "5. You are going to reply with code that is directly eval'd on a server. Do not wrap it with markdown or '```'.",
         '6. The generated function must NOT take in any arguments.',
         '{{#if needsContext}}7. You can use any of the variables by their names directly in the gnerated code. They will be available in the context during execution. {{/if}}',
@@ -118,7 +115,6 @@ export default class CodeGen {
 
     let generatedCode = await this.parser.chatCompletion.generate(
       {
-        model: ChatCompletionModels.critical,
         messages,
       },
       {
@@ -131,7 +127,6 @@ export default class CodeGen {
     if (generatedCode.content.match(/^[\s\n]*```(.|\n|\s)*```[\s\n]*$/)) {
       generatedCode = await this.parser.chatCompletion.generate(
         {
-          model: ChatCompletionModels.critical,
           messages: [
             ...messages,
             {

@@ -6,7 +6,7 @@
 
 ## Introduction
 
-*Use LLMs to generate type-safe and context-safe API calls given a natural language query.*
+*Use LLMs to generate type-safe and context-safe API calls from natural language.*
 
 <br/>
 
@@ -34,7 +34,7 @@ Here's a sample output:
 
 ## Problem
 
-The core of internet is free inter-connectivity. That has stayed true for client-server interactions but server-to-server communications aren't as streamlined.
+The core principle of the internet revolves around free inter-connectivity. That has stayed true for client-server interactions but server-to-server communications aren't as streamlined.
 
 The reason is simple: *human creativity*. Every API has its own special headers, weird parameter names and the invisible context (eg. you need to create customer before creating a subscription in stripe).
 
@@ -42,22 +42,27 @@ AI can solve this. But the foundation is not laid yet.
 
 ## Solution
 
-A framework to hinge the AI. Break the problem down into byte sized pieces and let the AI take atomic decisions.
+A framework to anchor the AI. Break the problem down into byte sized pieces and let the AI take atomic decisions.
 
 The inspiration is human problem-solving, just like a software engineer:
 
 * Remembers the objective
 * Searches relevant APIs
 * Reviews API specifications
-* Matches available data with required parameters
+  * Zooms in on chunks
+  * Shortlists properties
+  * Goes to the next chunk, repeat
+  * Zooms back out with a final shortlist
+* Matches available data with required parameters\
+  The same zoom-in and zoom-out happens here as well
 * Writes the API call
 
 
-## How To
+## Try it!
 
-You can follow the guide to install dependencies and try the tool via our CLI.
+We have a CLI for you. Please clone the repository
 
-To install dependencies:
+### Install dependencies
 
 ```bash
 pnpm i
@@ -67,8 +72,7 @@ or
 npm install
 ```
 
-## CLI Usage
-<br />
+### Configure
 
 You will need to configure the CLI by running the `configure` command:
 ```bash
@@ -79,7 +83,7 @@ or
 npx tsx src/cli/run.ts configure
 ```
 
-(You can also alternatively use Environment Variables as well, see [`src/utils/config.ts`](https://github.com/tryintervene/parser/blob/main/src/utils/config.ts))
+(You can also alternatively use Environment Variables, see [`src/utils/config.ts`](https://github.com/tryintervene/parser/blob/main/src/utils/config.ts))
 
 
 https://github.com/tryintervene/parser/blob/d14bb84f56057fe1740ab34e07a1033f82a17219/src/cli/index.ts
@@ -99,8 +103,19 @@ To learn about the commands in more details, please refer to the help command
 pnpm cli help
 ```
 
+## This is expensive!
+
+Indeed, the tool makes numerous LLM calls.
+
+You can use GPT 3.5 (or equivalent) which will make this a lot faster, cheaper but less accurate. You can go this route for simpler API calls that need to extract data from the user prompt. You can use the `--trivial` flag to do this
+
+However, the code can be optimized to use the less capable models for selective tasks. Open to PRs :)
+
+## What about other LLMs?
+This project works only with OpenAI models for now. I will be exploring other LLMs as well. Let me know [which one you want by opening an issue here](https://github.com/tryintervene/parser/issues/new?title=Request%20to%20integrate%20LLM:%20[LLM]&body=Hi,%20can%20you%20please%20add%20the%20following%20LLM%20to%20the%20parser:%20) or feel free to open a PR!
+
 ## Credits
 
-Credits to LangChain and LlamaIndex for the inspiration for some of the techniques.
+Credits to LangChain and LlamaIndex for the inspiration for some of the techniques used in the project.
 
-Special credits to [@rohanmayya](https://github.com/rohanmayya) for helping lay foundation for this project.
+Special credits to [@rohanmayya](https://github.com/rohanmayya) for helping lay the foundation for this project.

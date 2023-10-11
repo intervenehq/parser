@@ -14,7 +14,6 @@ import { IVectorStoreItem } from '~/embeddings/Item';
 import EmbeddingStore from '~/embeddings/Store';
 import vectorStore from '~/embeddings/vector-store';
 import Parser, { objectivePrefix } from '~/agent/index';
-import { ChatCompletionModels } from '~/chat-completion/base';
 
 import { EmbeddingsTable } from '~/utils/kysley';
 import { $deref, OperationObject } from '~/utils/openapi';
@@ -292,7 +291,6 @@ export default class ExternalResourceDirectory {
     );
 
     const { indexes } = await this.parser.chatCompletion.generateStructured({
-      model: ChatCompletionModels.critical,
       messages: [
         {
           content: message,

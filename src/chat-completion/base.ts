@@ -20,7 +20,7 @@ export type GenerateStructuredChatCompletion<
   $O extends SomeZodObject = SomeZodObject,
 > = <O extends $O>(
   params: {
-    model: ChatCompletionModels;
+    model?: ChatCompletionModels;
     messages: IChatCompletionMessage[];
     generatorName: string;
     generatorDescription: string;
@@ -34,7 +34,7 @@ export type GenerateStructuredChatCompletion<
 
 export type GenerateChatCompletion = (
   params: {
-    model: ChatCompletionModels;
+    model?: ChatCompletionModels;
     messages: IChatCompletionMessage[];
   },
   extraArgs?: Omit<
@@ -45,6 +45,7 @@ export type GenerateChatCompletion = (
 
 export default abstract class BaseChatCompletion<ClientT> {
   abstract client: ClientT;
+  abstract defaultModel: ChatCompletionModels;
 
   abstract generateStructured: GenerateStructuredChatCompletion;
 
