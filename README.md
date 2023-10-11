@@ -2,9 +2,14 @@
 
 <p align="center">
   <img src="public/images/logo.jpg" alt="Intervene Parser Logo" width="200" height="200">
+  <br />
+  <br />
+  <a href="https://discord.gg/tsgtfUEvWk">
+   <img src="https://dcbadge.vercel.app/api/server/tsgtfUEvWk?compact=true&style=flat" alt="Discord"/>
+  </a>
 </p>
 
-[![](https://dcbadge.vercel.app/api/server/tsgtfUEvWk?compact=true)](https://discord.gg/tsgtfUEvWk)
+
 
 ## Introduction
 
