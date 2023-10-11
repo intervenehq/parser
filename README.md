@@ -96,6 +96,8 @@ Use this command to generate an API call:
 pnpm cli parse "[Your natural language query here]" "/path/to/file1.json,/path/to/file2.json"
 ```
 
+Additionally, the `--context` option allows you to provide historical context for the API. Think of it as supplying a collection of variables to be referenced within a statement.
+
 ### Help
 To learn about the commands in more details, please refer to the help command
 
