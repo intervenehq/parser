@@ -12,7 +12,8 @@
 [Demo](#demo) |
 [How to use](#try-it) |
 [Problem](#problem) |
-[Solution](#solution)
+[Solution](#solution) | 
+[FAQs](#faqs)
 
 </p>
 
@@ -127,13 +128,15 @@ pnpm cli help
 pnpm cli help parse
 ```
 
-## This looks cool, but what about prod?
+## FAQs
+
+### This looks cool, but what about prod?
 
 With a few tweaks, you can use this project in your production environment.
 
 If you're interested in a hosted solution, please [fill out this quick form](https://tally.so/r/wzMJ8a), and I will get back to you in no time!
 
-## This is expensive!
+### This is expensive!
 
 Indeed, the tool makes numerous LLM calls.
 
@@ -141,11 +144,17 @@ You can use GPT 3.5 (or equivalent) which will make this a lot faster, cheaper b
 
 However, the code can be optimized to use the less capable models for selective tasks. Open to PRs :)
 
-## What about other LLMs?
+### What about other LLMs?
 
 This project works only with OpenAI models for now. I will be exploring other LLMs as well. Let me know [which one you want by opening an issue here](https://github.com/tryintervene/parser/issues/new?title=Request%20to%20integrate%20LLM:%20[LLM]&body=Hi,%20can%20you%20please%20add%20the%20following%20LLM%20to%20the%20parser:%20) or feel free to open a PR!
 
-## I want to contribute
+### Umm I don't like JavaScript. What about python?
+
+Before porting it to Python or Golang (or both), I want to determine if there are any real-world use cases for this technology. Please try out the CLI, share your thoughts, and I will promptly port it to other languages based on the feedback.
+
+I chose to start with a statically typed language due to the nature of the project. I could have used Golang, but I aimed for simplicity, hence the choice of TypeScript.
+
+### I want to contribute
 
 Awesome! PRs and issues are welcome!
 
