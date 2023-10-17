@@ -5,9 +5,15 @@
   "scripts": {
     "cli": "pnpm tsx ./src/cli/run.ts"
   },
+  "author": {
+    "name": "Sudhanshu Gautam",
+    "email": "me@sudhanshug.com"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
-    
     "@pinecone-database/pinecone": "^1.1.0",
     "@types/prompts": "^2.4.5",
     "better-sqlite3": "^8.7.0",
