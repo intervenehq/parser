@@ -9,10 +9,7 @@
   </a>
 
 [Introduction](#introduction) |
-[Demo](#demo) |
-[How to use](#try-it) |
-[Problem](#problem) |
-[Solution](#solution) | 
+[How to use](#usage) |
 [FAQs](#faqs)
 
 </p>
