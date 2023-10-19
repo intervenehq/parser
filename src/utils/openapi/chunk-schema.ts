@@ -1,4 +1,4 @@
-import { encode } from 'gpt-3-encoder';
+import { encode } from 'gpt-tokenizer';
 import { JSONSchema7 } from 'json-schema';
 import cloneDeep from 'lodash/cloneDeep';
 import { JsonValue } from 'type-fest';

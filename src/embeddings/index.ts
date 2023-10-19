@@ -1,29 +1,51 @@
-import { EmbeddingFunction, EmbeddingResponse } from '~/embeddings/functions';
-import { openaiEmbeddingFunction } from '~/embeddings/functions/openai';
+import { Query } from 'sift';
 
-export function createEmbeddings(
-  $text: string,
-  embeddingFunction?: EmbeddingFunction,
-): Promise<number[]>;
+export type InterveneParserItemMetadata = {
+  id: string;
+  provider: string;
+  paths: string[];
+};
 
-export function createEmbeddings(
-  $text: string[] | Iterable<string>,
-  embeddingFunction?: EmbeddingFunction,
-): Promise<EmbeddingResponse>;
+export type InterveneParserItem = {
+  id: string;
+  metadata: InterveneParserItemMetadata;
+  distance?: number;
+  embeddings?: number[];
+};
 
-export async function createEmbeddings(
-  $text: string | string[] | Iterable<string>,
-  embeddingFunction: EmbeddingFunction = openaiEmbeddingFunction,
-) {
-  if (Array.isArray($text) && !$text.length) return {};
+export type StorableInterveneParserItem = {
+  id: string;
+  metadata: InterveneParserItemMetadata;
+  embeddings: number[];
+  metadataHash: string;
+};
 
-  const text = typeof $text === 'string' ? [$text] : Array.from($text);
+export type UpsertEmbeddingResponse = [string, number[]][];
+export type CreateEmbeddingsFunction = (
+  input: string[],
+) => Promise<UpsertEmbeddingResponse>;
 
-  const embeddings = await embeddingFunction(text);
+export type SearchEmbeddingsFunction = (
+  input: string,
+  embedding: number[],
+  limit: number,
+  where: Exclude<Query<Omit<InterveneParserItemMetadata, 'paths'>>, RegExp>,
+) => Promise<InterveneParserItem[]>;
 
-  if (typeof $text === 'string') {
-    return embeddings[$text];
-  } else {
-    return embeddings;
-  }
-}
+export type UpsertEmbeddingsFunction = (
+  embeddings: StorableInterveneParserItem[],
+) => Promise<void>;
+
+export type RetrieveEmbeddingsFunction = (
+  input: string[],
+) => Promise<StorableInterveneParserItem[]>;
+
+export type VectorStoreFunctions = {
+  searchItems: SearchEmbeddingsFunction;
+  retrieveItems: RetrieveEmbeddingsFunction;
+  upsertItems: UpsertEmbeddingsFunction;
+};
+
+export type EmbeddingFunctions = {
+  createEmbeddings: CreateEmbeddingsFunction;
+} & VectorStoreFunctions;

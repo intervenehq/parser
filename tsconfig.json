@@ -1,25 +1,29 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es2019",
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
-    "composite": true,
+    "module": "ESNext",
+    "target": "es2015",
+    "lib": ["ES2019"],
     "strict": true,
     "downlevelIteration": true,
     "resolveJsonModule": true,
+    "moduleResolution": "Node",
     "skipLibCheck": true,
     "jsx": "preserve",
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
-    "baseUrl": ".",
+    "declaration": true,
+    "declarationDir": "dist",
+    "baseUrl": "src",
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": [
+      "bun-types"
+    ],
     "paths": {
-      "~/utils/*": ["src/utils/*"],
-      "~/embeddings/*": ["src/embeddings/*"],
-      "~/agent/*": ["src/agent/*"],
-      "~/chat-completion/*": ["src/chat-completion/*"]
+      "~/*": ["./*"]
     }
   },
-  "include": ["src/**/*", "package.json"]
+  "include": ["src/**/*"],
+  "exclude": ["./rollup.config.mjs"]
 }

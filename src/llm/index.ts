@@ -1,5 +1,10 @@
-import OpenAI from 'openai';
 import { SomeZodObject } from 'zod';
+
+import Logger from '~/utils/logger';
+
+export enum LLMs {
+  OpenAI = 'openai',
+}
 
 export interface IChatCompletionMessage {
   role: 'user' | 'assistant' | 'system';
@@ -26,10 +31,7 @@ export type GenerateStructuredChatCompletion<
     generatorDescription: string;
     generatorOutputSchema: O;
   },
-  extraArgs?: Omit<
-    OpenAI.Chat.ChatCompletionCreateParams,
-    'model' | 'messages'
-  >,
+  extraArgs?: object,
 ) => Promise<Zod.infer<O>>;
 
 export type GenerateChatCompletion = (
@@ -37,15 +39,16 @@ export type GenerateChatCompletion = (
     model?: ChatCompletionModels;
     messages: IChatCompletionMessage[];
   },
-  extraArgs?: Omit<
-    OpenAI.Chat.ChatCompletionCreateParams,
-    'model' | 'messages'
-  >,
+  extraArgs?: object,
 ) => Promise<IChatCompletionResponse>;
 
-export default abstract class BaseChatCompletion<ClientT> {
+export abstract class LLM<ClientT> {
   abstract client: ClientT;
   abstract defaultModel: ChatCompletionModels;
+  abstract logger: Logger;
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  constructor(logger: Logger, useLessCapableModel: boolean) {}
 
   abstract generateStructured: GenerateStructuredChatCompletion;
 

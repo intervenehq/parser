@@ -1,19 +1,14 @@
-import fs from 'fs';
-import path from 'path';
-import SwaggerParser from '@apidevtools/swagger-parser';
 import { JSONSchema7 } from 'json-schema';
 import { OpenAPI } from 'openapi-types';
-import { Options as OraOptions } from 'ora';
 
-import { cli } from 'src/cli';
 import CodeGen, { CodeGenLanguage } from '~/agent/code-gen';
 import ContextProcessor from '~/agent/context-processor';
 import ExternalResourceDirectory from '~/agent/external-resource-directory';
 import ExternalResourceEvaluator from '~/agent/external-resource-evaluator';
-import ChatCompletion from '~/chat-completion/index';
-
+import { EmbeddingFunctions } from '~/embeddings';
+import { LLM } from '~/llm';
 import { stringifyContext } from '~/utils/context';
-import { getCurrentDirectory } from '~/utils/current-directory';
+import Logger from '~/utils/logger';
 import { dereferencePath } from '~/utils/openapi/dereference-path';
 import { operationSchemas } from '~/utils/openapi/operation';
 import { extractRequiredSchema } from '~/utils/openapi/required-schema';
@@ -64,67 +59,55 @@ export interface OperationMetdata {
   description: string;
 }
 
-interface Loggable {
-  log: (...args: any[]) => void;
-  info: (...args: any[]) => void;
-  warn: (...args: any[]) => void;
-  error: (...args: any[]) => void;
-  showLoader?: (options: OraOptions) => void;
-  hideLoader?: () => void;
-}
-
 export default class Parser {
   externalResourceDirectory: ExternalResourceDirectory;
   externalResourceEvaluator: ExternalResourceEvaluator;
   contextProcessor: ContextProcessor;
   codeGen: CodeGen;
-  logger: Loggable;
+  logger: Logger;
 
-  chatCompletion: ChatCompletion;
+  llm: InstanceType<typeof LLM>;
 
-  constructor(
-    loggable: Loggable = cli,
-    fullReindex: boolean = false,
-    language: CodeGenLanguage = CodeGenLanguage.javascript,
-    trivial: boolean,
-  ) {
+  constructor(args: {
+    llm: LLM<any>;
+    logger: Logger;
+    language?: CodeGenLanguage;
+    embeddingFunctions: EmbeddingFunctions;
+  }) {
+    const { language = CodeGenLanguage.javascript, embeddingFunctions } = args;
+
+    this.logger = args.logger;
+    this.llm = args.llm;
+
     this.externalResourceDirectory = new ExternalResourceDirectory(
       this,
-      fullReindex,
+      embeddingFunctions,
     );
     this.externalResourceEvaluator = new ExternalResourceEvaluator(this);
     this.contextProcessor = new ContextProcessor(this);
     this.codeGen = new CodeGen(this, language);
-    this.logger = loggable;
-
-    this.chatCompletion = new ChatCompletion(trivial);
   }
 
   parse = async (
     objective: string,
     context: Record<string, JSONSchema7>,
-    openapiPaths: string[],
+    openAPIs: OpenAPI.Document[],
   ) => {
-    const openapis: OpenAPI.Document[] = [];
-    for (const openapiPath of openapiPaths) {
-      const contents = JSON.parse(fs.readFileSync(openapiPath, 'utf8'));
-      const openapi = await SwaggerParser.parse(contents);
-
-      openapis.push(openapi);
-      await this.externalResourceDirectory.embed(openapi);
+    for (const openAPI of openAPIs) {
+      await this.externalResourceDirectory.embed(openAPI);
     }
 
     const shortlist = await this.externalResourceDirectory.shortlist(
       objective,
       context,
-      openapis,
+      openAPIs,
     );
 
-    cli.info('Here are the APIs we are shortlisting for you: \n');
-    console.log(shortlist);
+    this.logger.info('Here are the APIs we are shortlisting for you: \n');
+    this.logger.log(shortlist);
 
     for (const api of shortlist) {
-      const openapi = openapis.find((o) => o.info.title === api.provider)!;
+      const openapi = openAPIs.find((o) => o.info.title === api.provider)!;
       const operationObject = dereferencePath(openapi, api.method, api.path);
       if (!operationObject) continue;
 
@@ -160,17 +143,17 @@ export default class Parser {
         });
 
       if (!isFeasible) {
-        cli.warn(
+        this.logger.warn(
           `chosen API (${api.provider}: ${api.method} ${api.path}) is not feasible, moving on to the next API. reason: '${reason}'`,
         );
         continue;
       }
 
-      cli.log(
+      this.logger.log(
         `Chosen API (${api.provider}: ${api.method} ${api.path}) is feasible, evaluating it further.`,
       );
 
-      cli.log('Narrowing down the parameter schemas for the API...');
+      this.logger.log('Narrowing down the parameter schemas for the API...');
 
       const {
         body: filteredBodySchema,
@@ -190,15 +173,13 @@ export default class Parser {
         },
       });
 
-      cli.info(
-        JSON.stringify({
-          body: filteredBodySchema,
-          query: filteredQuerySchema,
-          path: filteredPathSchema,
-        }),
-      );
+      this.logger.info({
+        filteredBodySchema,
+        filteredQuerySchema,
+        filteredPathSchema,
+      });
 
-      cli.log(
+      this.logger.log(
         'Narrowing down the historical context that can be used in the API call...',
       );
 
@@ -215,15 +196,13 @@ export default class Parser {
         },
       });
 
-      cli.info(
-        JSON.stringify({
-          body: filteredContextForBody,
-          query: filteredContextForQuery,
-          path: filteredContextForPath,
-        }),
-      );
+      this.logger.info({
+        filteredContextForBody,
+        filteredContextForQuery,
+        filteredContextForPath,
+      });
 
-      cli.log('Generating the input parameters...');
+      this.logger.log('Generating the input parameters...');
 
       const bodyParams = await this.codeGen.generateInput({
         ...operationMetadata,
@@ -246,9 +225,11 @@ export default class Parser {
         name: 'path',
       });
 
-      await cli.log(`Generating the ${this.codeGen.language} expression...`);
+      await this.logger.log(
+        `Generating the ${this.codeGen.language} expression...`,
+      );
 
-      const finalOutput = JSON.stringify({
+      return {
         provider: api.provider,
         method: api.method,
         path: api.path,
@@ -258,14 +239,7 @@ export default class Parser {
         requestContentType,
         responseContentType,
         responseSchema,
-      });
-
-      const outputPath = path.join(getCurrentDirectory(), '../../output.json');
-      fs.writeFileSync(outputPath, finalOutput);
-
-      await cli.warn(`Your output has been written to ${outputPath}`);
-
-      return;
+      };
     }
   };
 }

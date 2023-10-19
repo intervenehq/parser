@@ -6,7 +6,7 @@ import Parser, {
   OperationMetdata,
   operationPrefix,
 } from '~/agent/index';
-
+import Logger from '~/utils/logger';
 import { chunkSchema, getSubSchema } from '~/utils/openapi/chunk-schema';
 import { deepenSchema, shallowSchema } from '~/utils/openapi/deepen-schema';
 import { mergeSchema } from '~/utils/openapi/merge-schema';
@@ -14,9 +14,11 @@ import { t } from '~/utils/template';
 
 export default class ContextProcessor {
   private parser: Parser;
+  private logger: Logger;
 
   constructor(parser: Parser) {
     this.parser = parser;
+    this.logger = parser.logger;
   }
 
   async filter(
@@ -86,37 +88,36 @@ export default class ContextProcessor {
           continue;
         }
 
-        const { shortlist } =
-          await this.parser.chatCompletion.generateStructured({
-            messages: [
-              {
-                role: 'user',
-                content: t(
-                  [
-                    objectivePrefix(params, false),
-                    operationPrefix(params),
-                    'And I came up with this input JSON schema to the resource:',
-                    '```{{inputSchema}}```',
-                    'Here is a JSON schema of a variable named `{{key}}`:',
-                    '```{{chunkSchema}}```',
-                    "Your task is to shortlist a conservative set of properties from {{key}}'s" +
-                      ' JSON schema which may be relevant to generate an input compliant to the input schema.',
-                  ],
-                  {
-                    inputSchema: JSON.stringify(params.inputSchema),
-                    key,
-                    chunkSchema: JSON.stringify(chunkSchema),
-                  },
-                ),
-              },
-            ],
-            generatorName: 'shortlist_properties',
-            generatorDescription:
-              'Shortlist properties that are relevant given the objective',
-            generatorOutputSchema: Zod.object({
-              shortlist: Zod.array(Zod.enum(propertyNames as [string])),
-            }),
-          });
+        const { shortlist } = await this.parser.llm.generateStructured({
+          messages: [
+            {
+              role: 'user',
+              content: t(
+                [
+                  objectivePrefix(params, false),
+                  operationPrefix(params),
+                  'And I came up with this input JSON schema to the resource:',
+                  '```{{inputSchema}}```',
+                  'Here is a JSON schema of a variable named `{{key}}`:',
+                  '```{{chunkSchema}}```',
+                  "Your task is to shortlist a conservative set of properties from {{key}}'s" +
+                    ' JSON schema which may be relevant to generate an input compliant to the input schema.',
+                ],
+                {
+                  inputSchema: JSON.stringify(params.inputSchema),
+                  key,
+                  chunkSchema: JSON.stringify(chunkSchema),
+                },
+              ),
+            },
+          ],
+          generatorName: 'shortlist_properties',
+          generatorDescription:
+            'Shortlist properties that are relevant given the objective',
+          generatorOutputSchema: Zod.object({
+            shortlist: Zod.array(Zod.enum(propertyNames as [string])),
+          }),
+        });
 
         const subSchema = getSubSchema(chunkSchema, shortlist);
         filteredSchema = mergeSchema(filteredSchema, subSchema);
@@ -141,7 +142,7 @@ export default class ContextProcessor {
       return [];
     }
 
-    const { shortlist } = await this.parser.chatCompletion.generateStructured({
+    const { shortlist } = await this.parser.llm.generateStructured({
       messages: [
         {
           role: 'user',

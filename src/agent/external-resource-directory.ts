@@ -1,4 +1,4 @@
-import { encode } from 'gpt-3-encoder';
+import { encode } from 'gpt-tokenizer';
 import { JSONSchema7 } from 'json-schema';
 import compact from 'lodash/compact';
 import intersection from 'lodash/intersection';
@@ -7,15 +7,13 @@ import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types';
 import { stripHtml } from 'string-strip-html';
 import Zod from 'zod';
 
-import { cli } from 'src/cli';
-import VectorStoreCollection from '~/embeddings/Collection';
-import { createEmbeddings } from '~/embeddings/index';
-import { IVectorStoreItem } from '~/embeddings/Item';
-import EmbeddingStore from '~/embeddings/Store';
-import vectorStore from '~/embeddings/vector-store';
 import Parser, { objectivePrefix } from '~/agent/index';
-
-import { EmbeddingsTable } from '~/utils/kysley';
+import {
+  EmbeddingFunctions,
+  InterveneParserItemMetadata,
+  StorableInterveneParserItem,
+} from '~/embeddings';
+import Logger from '~/utils/logger';
 import { $deref, OperationObject } from '~/utils/openapi';
 import { getDefaultContentType } from '~/utils/openapi/content-type';
 import { dereferencePath } from '~/utils/openapi/dereference-path';
@@ -29,21 +27,20 @@ export type ExternalResourcePath = string & {
 
 export default class ExternalResourceDirectory {
   private parser: Parser;
-  private embeddingStore: EmbeddingStore;
-  private fullReindex: boolean;
+  private embeddingFunctions: EmbeddingFunctions;
+  private logger: Logger;
 
-  constructor(parser: Parser, fullReindex: boolean) {
+  constructor(parser: Parser, embeddingFunctions: EmbeddingFunctions) {
+    this.embeddingFunctions = embeddingFunctions;
     this.parser = parser;
-    this.embeddingStore = new EmbeddingStore();
-    this.fullReindex = fullReindex;
+    this.logger = parser.logger;
   }
 
   embed = async (api: OpenAPI.Document) => {
-    cli.log('Preparing OpenAPI specs for embedding');
+    this.logger.log('Preparing OpenAPI specs for embedding');
 
     // <keywords>: [<api1>, <api2>]
     const pathMapping = new Map<string, Set<string>>();
-    let collection = await vectorStore.findOrCreateCollection('openapi');
 
     // Iterate over all paths in the API
     for (const path in api.paths) {
@@ -77,24 +74,19 @@ export default class ExternalResourceDirectory {
       }
     }
 
-    if (this.fullReindex) {
-      collection = await vectorStore.purgeCollection(collection);
-    }
-
-    cli.log(
-      'Embedding OpenAPI specs... (This might take a while for Pinecone and Vectra)',
+    this.logger.log(
+      'Embedding OpenAPI specs... (This might take a while for Pinecone)',
     );
 
     // Process keys in batches
-    await this.processKeysInBatches(pathMapping, api, collection);
+    await this.processKeysInBatches(pathMapping, api);
 
-    cli.log('All done with embedding, completed without errors.');
+    this.logger.log('All done with embedding, completed without errors.');
   };
 
   private async processKeysInBatches(
     pathMapping: Map<string, Set<string>>,
     api: OpenAPI.Document,
-    collection: VectorStoreCollection,
   ) {
     const allKeys = Array.from(pathMapping.keys());
     const batchSize = 1000;
@@ -128,7 +120,7 @@ export default class ExternalResourceDirectory {
       const metadataHashMap = createMetadataHashMap(metadataMap);
 
       // Retrieve stored embeddings
-      const storedEmbeddings = await this.embeddingStore.retrieveEmbeddings(
+      const storedEmbeddings = await this.embeddingFunctions.retrieveItems(
         Object.keys(trimmedToOriginalKeyMap),
       );
 
@@ -139,70 +131,51 @@ export default class ExternalResourceDirectory {
         metadataHashMap,
       );
 
-      // Create vector store items and embeddings to store
-      const vectorStoreItems: IVectorStoreItem[] = [];
-      const embeddingsToStore: EmbeddingsTable[] = [];
+      const embeddingsToStore: StorableInterveneParserItem[] = [];
 
-      console.log('Embedding', keysToEmbed.length, 'keys');
-      const embeddings = await createEmbeddings(keysToEmbed);
+      this.logger.log('Embedding', keysToEmbed.length, 'keys');
+      const embeddingsResponse = keysToEmbed.length
+        ? await this.embeddingFunctions.createEmbeddings(keysToEmbed)
+        : [];
+      const embeddingsMap = Object.fromEntries(embeddingsResponse);
 
       for (const trimmedKey of Object.keys(trimmedToOriginalKeyMap)) {
-        let vectorStoreItem: IVectorStoreItem | undefined;
-
         if (keysToEmbed.includes(trimmedKey)) {
-          vectorStoreItem = {
-            id: trimmedKey,
-            embeddings: embeddings[trimmedKey],
-            metadata: metadataMap[trimmedKey],
-          };
-
           embeddingsToStore.push({
-            input: trimmedKey,
-            vectors: JSON.stringify(embeddings[trimmedKey]),
-            metadata_object_hash: metadataHashMap[trimmedKey],
+            id: trimmedKey,
+            embeddings: embeddingsMap[trimmedKey],
+            metadataHash: metadataHashMap[trimmedKey],
+            metadata: metadataMap[trimmedKey],
           });
         }
-
-        if (this.fullReindex) {
-          vectorStoreItem ||= {
-            id: trimmedKey,
-            embeddings:
-              embeddings[trimmedKey] ??
-              storedEmbeddings.find(({ input }) => input === trimmedKey)
-                ?.vectors,
-            metadata: metadataMap[trimmedKey],
-          };
-        }
-
-        !!vectorStoreItem && vectorStoreItems.push(vectorStoreItem);
       }
 
-      console.log('Storing', vectorStoreItems.length, 'embeddings to store');
+      this.logger.log(
+        'Storing',
+        embeddingsToStore.length,
+        'embeddings to store',
+      );
 
-      // Store embeddings and create vector store items
-      await this.embeddingStore.storeEmbeddings(embeddingsToStore);
-      await vectorStore.createItems(collection, vectorStoreItems);
+      await this.embeddingFunctions.upsertItems(embeddingsToStore);
     }
   }
 
   search = async (objective: string, providers: string[]) => {
-    cli.info('Search called with objective:', objective);
+    this.logger.info('Search called with objective:', objective);
 
-    const collection = await vectorStore.findOrCreateCollection('openapi');
-    console.log('Collection created or fetched:', collection);
+    const embedding = await this.embeddingFunctions.createEmbeddings([
+      objective,
+    ]);
 
-    const embedding = await createEmbeddings(objective);
-
-    const matches = await vectorStore.queryItems(
-      collection,
-      embedding,
+    const matches = await this.embeddingFunctions.searchItems(
+      objective,
+      embedding[0][1],
+      10,
       providers.length > 1
         ? {
-            $or: providers.map((provider) => ({
-              provider: {
-                $eq: provider,
-              },
-            })),
+            provider: {
+              $in: providers,
+            },
           }
         : {
             provider: {
@@ -214,11 +187,11 @@ export default class ExternalResourceDirectory {
     const pathScores: Map<string, number> = new Map();
 
     for (const match of matches) {
-      const matchPaths = JSON.parse((match.metadata?.paths as string) ?? '[]');
+      const matchPaths = match.metadata?.paths;
 
       for (const path of matchPaths) {
         const score = pathScores.get(path) ?? 0;
-        pathScores.set(path, score + (1 - match.distance));
+        pathScores.set(path, score + (1 - (match.distance ?? 0)));
       }
     }
 
@@ -292,7 +265,9 @@ export default class ExternalResourceDirectory {
       },
     );
 
-    const { indexes } = await this.parser.chatCompletion.generateStructured({
+    this.logger.log('Asking LLMs to shortlist the correct APIs');
+
+    const { indexes } = await this.parser.llm.generateStructured({
       messages: [
         {
           content: message,
@@ -386,21 +361,21 @@ function createMetadataMap(
   trimmedToOriginalKeyMap: Record<string, string>,
   pathMapping: Map<string, Set<string>>,
   api: OpenAPI.Document,
-): Record<string, any> {
+): Record<string, InterveneParserItemMetadata> {
   return Object.fromEntries(
     Object.entries(trimmedToOriginalKeyMap).map(([trimmedKey, originalKey]) => [
       trimmedKey,
       {
-        paths: JSON.stringify(Array.from(pathMapping.get(originalKey)!)),
+        paths: Array.from(pathMapping.get(originalKey)!),
         provider: api.info.title,
-        input: originalKey,
+        id: originalKey,
       },
     ]),
   );
 }
 
 function createMetadataHashMap(
-  metadataMap: Record<string, any>,
+  metadataMap: Record<string, InterveneParserItemMetadata>,
 ): Record<string, string> {
   return Object.fromEntries(
     Object.entries(metadataMap).map(([trimmedKey, metadata]) => [
@@ -412,18 +387,18 @@ function createMetadataHashMap(
 
 function getKeysToEmbed(
   trimmedToOriginalKeyMap: Record<string, string>,
-  storedEmbeddings: any[],
+  storedEmbeddings: StorableInterveneParserItem[],
   metadataHashMap: Record<string, string>,
 ): string[] {
   return Object.keys(trimmedToOriginalKeyMap).filter((key) => {
     if (!key) return false;
 
     const storedEmbedding = storedEmbeddings.find(
-      (embedding) => embedding.input === key,
+      (embedding) => embedding.id === key,
     );
     if (storedEmbedding) {
       const hash = metadataHashMap[key];
-      if (storedEmbedding.metadata_object_hash === hash) {
+      if (storedEmbedding.metadataHash === hash) {
         return false;
       }
     }

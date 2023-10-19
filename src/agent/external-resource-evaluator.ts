@@ -6,8 +6,8 @@ import Parser, {
   OperationMetdata,
   operationPrefix,
 } from '~/agent/index';
-
 import { stringifyContext } from '~/utils/context';
+import Logger from '~/utils/logger';
 import { chunkSchema, getSubSchema } from '~/utils/openapi/chunk-schema';
 import { deepenSchema } from '~/utils/openapi/deepen-schema';
 import { mergeSchema } from '~/utils/openapi/merge-schema';
@@ -15,9 +15,11 @@ import { t } from '~/utils/template';
 
 export default class ExternalResourceEvaluator {
   private parser: Parser;
+  private logger: Logger;
 
   constructor(parser: Parser) {
     this.parser = parser;
+    this.logger = parser.logger;
   }
 
   async isFeasible(
@@ -50,7 +52,7 @@ export default class ExternalResourceEvaluator {
     );
 
     const { is_this_the_right_external_resource, reason } =
-      await this.parser.chatCompletion.generateStructured({
+      await this.parser.llm.generateStructured({
         messages: [
           {
             content: message,
@@ -118,36 +120,34 @@ export default class ExternalResourceEvaluator {
     const chunks = chunkSchema(params.inputSchema ?? {});
 
     for (const { schema: chunkSchema, propertyNames } of chunks) {
-      const { shortlist } = await this.parser.chatCompletion.generateStructured(
-        {
-          messages: [
-            {
-              role: 'user',
-              content: t(
-                [
-                  objectivePrefix(params, false),
-                  operationPrefix(params),
-                  'And I came up with this input to the resource:',
-                  '```{{filteredSchema}}```',
-                  'Your task is to shortlist properties that may be relevant to achieve the objective.',
-                  'You must choose from the following JSONSchema:',
-                  '```{{chunkSchema}}```',
-                ],
-                {
-                  filteredSchema: JSON.stringify(filteredSchema),
-                  chunkSchema: JSON.stringify(chunkSchema),
-                },
-              ),
-            },
-          ],
-          generatorName: 'shortlist_properties',
-          generatorDescription:
-            'Shortlist properties that are relevant given the objective',
-          generatorOutputSchema: Zod.object({
-            shortlist: Zod.array(Zod.enum(propertyNames as [string])),
-          }),
-        },
-      );
+      const { shortlist } = await this.parser.llm.generateStructured({
+        messages: [
+          {
+            role: 'user',
+            content: t(
+              [
+                objectivePrefix(params, false),
+                operationPrefix(params),
+                'And I came up with this input to the resource:',
+                '```{{filteredSchema}}```',
+                'Your task is to shortlist properties that may be relevant to achieve the objective.',
+                'You must choose from the following JSONSchema:',
+                '```{{chunkSchema}}```',
+              ],
+              {
+                filteredSchema: JSON.stringify(filteredSchema),
+                chunkSchema: JSON.stringify(chunkSchema),
+              },
+            ),
+          },
+        ],
+        generatorName: 'shortlist_properties',
+        generatorDescription:
+          'Shortlist properties that are relevant given the objective',
+        generatorOutputSchema: Zod.object({
+          shortlist: Zod.array(Zod.enum(propertyNames as [string])),
+        }),
+      });
 
       const subSchema = getSubSchema(chunkSchema, shortlist);
       filteredSchema = mergeSchema(filteredSchema, subSchema);

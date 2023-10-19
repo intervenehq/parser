@@ -1,3 +1,4 @@
+// import SwaggerParser from '@apidevtools/swagger-parser';
 import cloneDeep from 'lodash/cloneDeep';
 import { OpenAPI, OpenAPIV2, OpenAPIV3 } from 'openapi-types';
 
@@ -113,3 +114,80 @@ export function dereferencePath(
 
   return data?.paths![endpointPath]![httpMethod] as OperationObject;
 }
+
+// type J = Record<string, any> | any[] | any;
+
+// function findRefsUsed(data: J): string[] {
+//   if (!data || typeof data !== 'object') return [];
+
+//   if ('$ref' in data) return [data['$ref']];
+
+//   const refs: string[] = [];
+
+//   for (const key in data) {
+//     refs.push(...findRefsUsed(data[key]));
+//   }
+
+//   return refs;
+// }
+
+// function flattenRefs2(
+//   $data: J,
+//   refs: SwaggerParser.$Refs,
+//   stack: Set<string>,
+// ): J {
+//   let data = cloneDeep($data);
+
+//   if (data && typeof data === 'object') {
+//     if ('$ref' in data) {
+//       const ref = data['$ref'] as string;
+//       if (stack.has(ref)) {
+//         data = {};
+//       } else {
+//         // if (ref.includes('file')) console.log(ref, stack);
+//         data = flattenRefs2(refs.get(ref), refs, new Set([...stack, ref]));
+//       }
+//     } else {
+//       for (const key in data) {
+//         data[key] = flattenRefs2(data[key], refs, stack);
+//       }
+//     }
+//   }
+
+//   return data;
+// }
+
+// export async function dereferencePath2(
+//   jsonData: OpenAPI.Document,
+//   httpMethod: OpenAPIV2.HttpMethods,
+//   endpointPath: string,
+// ) {
+//   const refs = await SwaggerParser.resolve(jsonData);
+//   const api = await SwaggerParser.parse(jsonData);
+
+//   const operationObject = cloneDeep(api.paths?.[endpointPath]?.[httpMethod]);
+
+//   if (!operationObject) return {};
+
+//   return flattenRefs2(operationObject as any, refs, new Set());
+// }
+
+// async function main() {
+//   const json = await Bun.file(
+//     '/Users/sudhanshugautam/workspace/intevene/src/server/openapi/stripe.json',
+//   ).json();
+
+//   console.log(
+//     JSON.stringify(
+//       await dereferencePath2(
+//         json,
+//         OpenAPIV2.HttpMethods.POST,
+//         '/v1/subscriptions/{subscription_exposed_id}',
+//       ),
+//     ),
+//   );
+// }
+
+// main().then(() => {
+//   process.exit(0);
+// });
