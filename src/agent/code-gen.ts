@@ -59,7 +59,9 @@ export default class CodeGen {
       name: string;
     },
   ) {
-    const boilerplate = functionBoilerplate('get_params')[this.language];
+    const boilerplate = functionBoilerplate(`get_${params.name}_params`)[
+      this.language
+    ];
 
     const message = t(
       [
