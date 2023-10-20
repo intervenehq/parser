@@ -108,7 +108,11 @@ export default class Parser {
 
     for (const api of shortlist) {
       const openapi = openAPIs.find((o) => o.info.title === api.provider)!;
-      const operationObject = dereferencePath(openapi, api.method, api.path);
+      const operationObject = await dereferencePath(
+        openapi,
+        api.method,
+        api.path,
+      );
       if (!operationObject) continue;
 
       const operationMetadata: OperationMetdata = {
