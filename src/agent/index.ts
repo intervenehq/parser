@@ -240,6 +240,7 @@ export default class Parser {
         bodyParams,
         queryParams,
         pathParams,
+        servers: 'servers' in openapi ? openapi.servers : undefined,
         requestContentType,
         responseContentType,
         responseSchema,
