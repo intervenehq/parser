@@ -5,7 +5,7 @@
   "files": [
     "dist"
   ],
-  "version": "0.1.1",
+  "version": "0.1.2",
   "scripts": {
     "cli": "pnpm tsx ./src/cli/run.ts",
     "build": "tsc && tsc-alias",
