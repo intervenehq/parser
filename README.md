@@ -10,9 +10,12 @@
 
 [Introduction](#introduction) |
 [How to use](#usage) |
-[FAQs](#faqs)
+[FAQs](#faqs) |
+[Contact](mailto:me@sudhanshug.com)
 
 </p>
+
+> Launching a drop-in replacement to Zapier NLA by Nov 7th! Please contact me [me@sudhanshug.com](mailto:me@sudhanshug.com) if you have any questions.
 
 ## Introduction
 
