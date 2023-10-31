@@ -1,11 +1,12 @@
 import { JSONSchema7 } from 'json-schema';
 import Zod from 'zod';
 
-import Parser, {
+import {
   objectivePrefix,
   OperationMetdata,
   operationPrefix,
 } from '~/agent/index';
+import { LLM } from '~/llm';
 import { stringifyContext } from '~/utils/context';
 import Logger from '~/utils/logger';
 import { chunkSchema, getSubSchema } from '~/utils/openapi/chunk-schema';
@@ -14,13 +15,10 @@ import { mergeSchema } from '~/utils/openapi/merge-schema';
 import { t } from '~/utils/template';
 
 export default class ExternalResourceEvaluator {
-  private parser: Parser;
-  private logger: Logger;
-
-  constructor(parser: Parser) {
-    this.parser = parser;
-    this.logger = parser.logger;
-  }
+  constructor(
+    public logger: Logger,
+    public llm: LLM<any>,
+  ) {}
 
   async isFeasible(
     params: OperationMetdata & {
@@ -52,7 +50,7 @@ export default class ExternalResourceEvaluator {
     );
 
     const { is_this_the_right_external_resource, reason } =
-      await this.parser.llm.generateStructured({
+      await this.llm.generateStructured({
         messages: [
           {
             content: message,
@@ -91,22 +89,35 @@ export default class ExternalResourceEvaluator {
       };
     },
   ) {
+    const filterPromises = (
+      await Promise.allSettled([
+        await this.filterInputSchema({
+          ...params,
+          requiredInputSchema: params.requiredInputSchema.body,
+          inputSchema: params.inputSchema.body,
+        }),
+        await this.filterInputSchema({
+          ...params,
+          requiredInputSchema: params.requiredInputSchema.query,
+          inputSchema: params.inputSchema.query,
+        }),
+        await this.filterInputSchema({
+          ...params,
+          requiredInputSchema: params.requiredInputSchema.path,
+          inputSchema: params.inputSchema.path,
+        }),
+      ])
+    ).map((result) => {
+      if (result.status === 'rejected')
+        throw `couldnt shortlist input, error ${result.reason}`;
+
+      return result.value;
+    });
+
     return {
-      body: await this.filterInputSchema({
-        ...params,
-        requiredInputSchema: params.requiredInputSchema.body,
-        inputSchema: params.inputSchema.body,
-      }),
-      query: await this.filterInputSchema({
-        ...params,
-        requiredInputSchema: params.requiredInputSchema.query,
-        inputSchema: params.inputSchema.query,
-      }),
-      path: await this.filterInputSchema({
-        ...params,
-        requiredInputSchema: params.requiredInputSchema.path,
-        inputSchema: params.inputSchema.path,
-      }),
+      body: filterPromises[0],
+      query: filterPromises[1],
+      path: filterPromises[2],
     };
   }
 
@@ -120,7 +131,7 @@ export default class ExternalResourceEvaluator {
     const chunks = chunkSchema(params.inputSchema ?? {});
 
     for (const { schema: chunkSchema, propertyNames } of chunks) {
-      const { shortlist } = await this.parser.llm.generateStructured({
+      const { shortlist } = await this.llm.generateStructured({
         messages: [
           {
             role: 'user',

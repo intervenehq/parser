@@ -14,6 +14,7 @@ import { operationSchemas } from '~/utils/openapi/operation';
 import { extractRequiredSchema } from '~/utils/openapi/required-schema';
 import { t } from '~/utils/template';
 
+9800933178;
 export const objectivePrefix = (
   params: Pick<OperationMetdata, 'objective' | 'context'>,
   withContext = true,
@@ -66,8 +67,6 @@ export default class Parser {
   codeGen: CodeGen;
   logger: Logger;
 
-  llm: InstanceType<typeof LLM>;
-
   constructor(args: {
     llm: LLM<any>;
     logger: Logger;
@@ -77,15 +76,18 @@ export default class Parser {
     const { language = CodeGenLanguage.javascript, embeddingFunctions } = args;
 
     this.logger = args.logger;
-    this.llm = args.llm;
 
     this.externalResourceDirectory = new ExternalResourceDirectory(
-      this,
+      args.logger,
       embeddingFunctions,
+      args.llm,
     );
-    this.externalResourceEvaluator = new ExternalResourceEvaluator(this);
-    this.contextProcessor = new ContextProcessor(this);
-    this.codeGen = new CodeGen(this, language);
+    this.externalResourceEvaluator = new ExternalResourceEvaluator(
+      args.logger,
+      args.llm,
+    );
+    this.contextProcessor = new ContextProcessor(args.logger, args.llm);
+    this.codeGen = new CodeGen(args.logger, args.llm, language);
   }
 
   parse = async (
@@ -93,10 +95,6 @@ export default class Parser {
     context: Record<string, JSONSchema7>,
     openAPIs: OpenAPI.Document[],
   ) => {
-    for (const openAPI of openAPIs) {
-      await this.externalResourceDirectory.embed(openAPI);
-    }
-
     const shortlist = await this.externalResourceDirectory.shortlist(
       objective,
       context,
@@ -208,25 +206,32 @@ export default class Parser {
 
       this.logger.log('Generating the input parameters...');
 
-      const bodyParams = await this.codeGen.generateInput({
-        ...operationMetadata,
-        inputSchema: filteredBodySchema,
-        filteredContext: filteredContextForBody,
-        name: 'body',
-      });
+      const generatedCode = (
+        await Promise.allSettled([
+          this.codeGen.generateInput({
+            ...operationMetadata,
+            inputSchema: filteredBodySchema,
+            filteredContext: filteredContextForBody,
+            name: 'body',
+          }),
+          this.codeGen.generateInput({
+            ...operationMetadata,
+            inputSchema: filteredQuerySchema,
+            filteredContext: filteredContextForQuery,
+            name: 'query',
+          }),
+          this.codeGen.generateInput({
+            ...operationMetadata,
+            inputSchema: filteredPathSchema,
+            filteredContext: filteredContextForPath,
+            name: 'path',
+          }),
+        ])
+      ).map((r) => {
+        if (r.status === 'rejected')
+          throw `couldnt generate code, reason: ${r.reason}`;
 
-      const queryParams = await this.codeGen.generateInput({
-        ...operationMetadata,
-        inputSchema: filteredQuerySchema,
-        filteredContext: filteredContextForQuery,
-        name: 'query',
-      });
-
-      const pathParams = await this.codeGen.generateInput({
-        ...operationMetadata,
-        inputSchema: filteredPathSchema,
-        filteredContext: filteredContextForPath,
-        name: 'path',
+        return r.value;
       });
 
       await this.logger.log(
@@ -237,9 +242,9 @@ export default class Parser {
         provider: api.provider,
         method: api.method,
         path: api.path,
-        bodyParams,
-        queryParams,
-        pathParams,
+        bodyParams: generatedCode[0],
+        queryParams: generatedCode[1],
+        pathParams: generatedCode[2],
         servers: 'servers' in openapi ? openapi.servers : undefined,
         requestContentType,
         responseContentType,

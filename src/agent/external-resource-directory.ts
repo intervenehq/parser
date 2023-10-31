@@ -7,12 +7,13 @@ import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types';
 import { stripHtml } from 'string-strip-html';
 import Zod from 'zod';
 
-import Parser, { objectivePrefix } from '~/agent/index';
+import { objectivePrefix } from '~/agent/index';
 import {
   EmbeddingFunctions,
   InterveneParserItemMetadata,
   StorableInterveneParserItem,
 } from '~/embeddings';
+import { LLM } from '~/llm';
 import Logger from '~/utils/logger';
 import { $deref, OperationObject } from '~/utils/openapi';
 import { getDefaultContentType } from '~/utils/openapi/content-type';
@@ -26,15 +27,11 @@ export type ExternalResourcePath = string & {
 };
 
 export default class ExternalResourceDirectory {
-  private parser: Parser;
-  private embeddingFunctions: EmbeddingFunctions;
-  private logger: Logger;
-
-  constructor(parser: Parser, embeddingFunctions: EmbeddingFunctions) {
-    this.embeddingFunctions = embeddingFunctions;
-    this.parser = parser;
-    this.logger = parser.logger;
-  }
+  constructor(
+    public logger: Logger,
+    public embeddingFunctions: EmbeddingFunctions,
+    public llm: LLM<any>,
+  ) {}
 
   embed = async (api: OpenAPI.Document) => {
     this.logger.log('Preparing OpenAPI specs for embedding');
@@ -267,7 +264,7 @@ export default class ExternalResourceDirectory {
 
     this.logger.log('Asking LLMs to shortlist the correct APIs');
 
-    const { indexes } = await this.parser.llm.generateStructured({
+    const { indexes } = await this.llm.generateStructured({
       messages: [
         {
           content: message,

@@ -1,11 +1,12 @@
 import { JSONSchema7 } from 'json-schema';
 import Zod from 'zod';
 
-import Parser, {
+import {
   objectivePrefix,
   OperationMetdata,
   operationPrefix,
 } from '~/agent/index';
+import { LLM } from '~/llm';
 import Logger from '~/utils/logger';
 import { chunkSchema, getSubSchema } from '~/utils/openapi/chunk-schema';
 import { deepenSchema, shallowSchema } from '~/utils/openapi/deepen-schema';
@@ -13,13 +14,10 @@ import { mergeSchema } from '~/utils/openapi/merge-schema';
 import { t } from '~/utils/template';
 
 export default class ContextProcessor {
-  private parser: Parser;
-  private logger: Logger;
-
-  constructor(parser: Parser) {
-    this.parser = parser;
-    this.logger = parser.logger;
-  }
+  constructor(
+    public logger: Logger,
+    public llm: LLM<any>,
+  ) {}
 
   async filter(
     params: OperationMetdata & {
@@ -30,37 +28,42 @@ export default class ContextProcessor {
       };
     },
   ) {
-    const contextShortlist = Array.from(
-      new Set([
-        ...(await this.shortlist({
+    const contextShortlist = (
+      await Promise.allSettled([
+        await this.shortlist({
           ...params,
           inputSchema: params.inputSchema.body,
-        })),
-        ...(await this.shortlist({
+        }),
+        await this.shortlist({
           ...params,
           inputSchema: params.inputSchema.query,
-        })),
-        ...(await this.shortlist({
+        }),
+        await this.shortlist({
           ...params,
           inputSchema: params.inputSchema.path,
-        })),
-      ]),
-    );
+        }),
+      ])
+    ).map((result) => {
+      if (result.status === 'rejected')
+        throw `couldnt shortlist context, error ${result.reason}`;
+
+      return result.value;
+    });
 
     const filteredContextForBody = await this.filterSchema({
       ...params,
       inputSchema: params.inputSchema.body,
-      contextShortlist,
+      contextShortlist: contextShortlist[0],
     });
     const filteredContextForQuery = await this.filterSchema({
       ...params,
       inputSchema: params.inputSchema.query,
-      contextShortlist,
+      contextShortlist: contextShortlist[1],
     });
     const filteredContextForPath = await this.filterSchema({
       ...params,
       inputSchema: params.inputSchema.path,
-      contextShortlist,
+      contextShortlist: contextShortlist[2],
     });
 
     return {
@@ -88,7 +91,7 @@ export default class ContextProcessor {
           continue;
         }
 
-        const { shortlist } = await this.parser.llm.generateStructured({
+        const { shortlist } = await this.llm.generateStructured({
           messages: [
             {
               role: 'user',
@@ -142,7 +145,7 @@ export default class ContextProcessor {
       return [];
     }
 
-    const { shortlist } = await this.parser.llm.generateStructured({
+    const { shortlist } = await this.llm.generateStructured({
       messages: [
         {
           role: 'user',

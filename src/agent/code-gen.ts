@@ -1,11 +1,11 @@
 import { JSONSchema7 } from 'json-schema';
 
-import Parser, {
+import {
   objectivePrefix,
   OperationMetdata,
   operationPrefix,
 } from '~/agent/index';
-import { IChatCompletionMessage } from '~/llm';
+import { IChatCompletionMessage, LLM } from '~/llm';
 import Logger from '~/utils/logger';
 import { t } from '~/utils/template';
 
@@ -42,15 +42,11 @@ function ${name}() {
 });
 
 export default class CodeGen {
-  private parser: Parser;
-  private logger: Logger;
-  public language: CodeGenLanguage;
-
-  constructor(parser: Parser, language: CodeGenLanguage) {
-    this.parser = parser;
-    this.logger = parser.logger;
-    this.language = language;
-  }
+  constructor(
+    public logger: Logger,
+    public llm: LLM<any>,
+    public language: CodeGenLanguage,
+  ) {}
 
   async generateInput(
     params: OperationMetdata & {
@@ -115,7 +111,7 @@ export default class CodeGen {
       },
     ];
 
-    let generatedCode = await this.parser.llm.generate(
+    let generatedCode = await this.llm.generate(
       {
         messages,
       },
@@ -127,7 +123,7 @@ export default class CodeGen {
     );
 
     if (generatedCode.content.match(/^[\s\n]*```(.|\n|\s)*```[\s\n]*$/)) {
-      generatedCode = await this.parser.llm.generate(
+      generatedCode = await this.llm.generate(
         {
           messages: [
             ...messages,
