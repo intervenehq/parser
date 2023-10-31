@@ -14,7 +14,6 @@ import { operationSchemas } from '~/utils/openapi/operation';
 import { extractRequiredSchema } from '~/utils/openapi/required-schema';
 import { t } from '~/utils/template';
 
-9800933178;
 export const objectivePrefix = (
   params: Pick<OperationMetdata, 'objective' | 'context'>,
   withContext = true,
