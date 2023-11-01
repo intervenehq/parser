@@ -7,18 +7,18 @@ import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types';
 import { stripHtml } from 'string-strip-html';
 import Zod from 'zod';
 
-import { objectivePrefix } from '~/agent/index';
+import { objectivePrefix } from '../agent/index';
 import {
   EmbeddingFunctions,
   InterveneParserItemMetadata,
   StorableInterveneParserItem,
-} from '~/embeddings';
-import { LLM } from '~/llm';
-import Logger from '~/utils/logger';
-import { $deref, OperationObject } from '~/utils/openapi';
-import { getDefaultContentType } from '~/utils/openapi/content-type';
-import { dereferencePath } from '~/utils/openapi/dereference-path';
-import { t } from '~/utils/template';
+} from '../embeddings';
+import { LLM } from '../llm';
+import Logger from '../utils/logger';
+import { $deref, OperationObject } from '../utils/openapi';
+import { getDefaultContentType } from '../utils/openapi/content-type';
+import { dereferencePath } from '../utils/openapi/dereference-path';
+import { t } from '../utils/template';
 
 export type ExternalResourcePath = string & {
   ____: never;

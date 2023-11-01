@@ -4,10 +4,10 @@ import {
   objectivePrefix,
   OperationMetdata,
   operationPrefix,
-} from '~/agent/index';
-import { IChatCompletionMessage, LLM } from '~/llm';
-import Logger from '~/utils/logger';
-import { t } from '~/utils/template';
+} from '../agent/index';
+import { IChatCompletionMessage, LLM } from '../llm';
+import Logger from '../utils/logger';
+import { t } from '../utils/template';
 
 export enum CodeGenLanguage {
   javascript = 'javascript',

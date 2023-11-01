@@ -1,29 +1,18 @@
 {
+  "exclude": ["lib/**/*.spec.tsx", "lib/**/*.stories.tsx", "lib/**/*.styles.tsx", "dist/**/*"],
   "compilerOptions": {
-    "module": "ESNext",
-    "target": "es2015",
-    "lib": ["ES2019"],
-    "strict": true,
-    "downlevelIteration": true,
-    "resolveJsonModule": true,
-    "moduleResolution": "Node",
     "skipLibCheck": true,
-    "jsx": "preserve",
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "allowJs": true,
+    "target": "es6",
+    "module": "es6",
+    "lib": ["es2020"],
+    "jsx": "react",
     "declaration": true,
-    "declarationDir": "dist",
-    "baseUrl": "src",
+    "declarationMap": true,
+    "sourceMap": true,
     "outDir": "dist",
-    "rootDir": "src",
-    "types": [
-      "bun-types"
-    ],
-    "paths": {
-      "~/*": ["./*"]
-    }
-  },
-  "include": ["src/**/*"],
-  "exclude": ["./rollup.config.mjs"]
+    "strict": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  }
 }

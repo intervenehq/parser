@@ -2,8 +2,8 @@ import { JSONSchema7 } from 'json-schema';
 import cloneDeep from 'lodash/cloneDeep';
 import { OpenAPIV2, OpenAPIV3 } from 'openapi-types';
 
-import { $deref, OperationObject } from '~/utils/openapi';
-import { getDefaultContentType } from '~/utils/openapi/content-type';
+import { $deref, OperationObject } from './';
+import { getDefaultContentType } from './content-type';
 
 function operationSchemas(operationObject: OperationObject) {
   const parameters = $deref(operationObject.parameters) ?? [];

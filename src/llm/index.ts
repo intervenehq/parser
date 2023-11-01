@@ -1,6 +1,6 @@
 import { SomeZodObject } from 'zod';
 
-import Logger from '~/utils/logger';
+import Logger from '../utils/logger';
 
 export enum LLMs {
   OpenAI = 'openai',

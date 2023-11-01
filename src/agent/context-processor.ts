@@ -5,13 +5,13 @@ import {
   objectivePrefix,
   OperationMetdata,
   operationPrefix,
-} from '~/agent/index';
-import { LLM } from '~/llm';
-import Logger from '~/utils/logger';
-import { chunkSchema, getSubSchema } from '~/utils/openapi/chunk-schema';
-import { deepenSchema, shallowSchema } from '~/utils/openapi/deepen-schema';
-import { mergeSchema } from '~/utils/openapi/merge-schema';
-import { t } from '~/utils/template';
+} from '../agent/index';
+import { LLM } from '../llm';
+import Logger from '../utils/logger';
+import { chunkSchema, getSubSchema } from '../utils/openapi/chunk-schema';
+import { deepenSchema, shallowSchema } from '../utils/openapi/deepen-schema';
+import { mergeSchema } from '../utils/openapi/merge-schema';
+import { t } from '../utils/template';
 
 export default class ContextProcessor {
   constructor(

@@ -2,7 +2,7 @@ import SwaggerParser from '@apidevtools/swagger-parser';
 import cloneDeep from 'lodash/cloneDeep';
 import { OpenAPI, OpenAPIV2 } from 'openapi-types';
 
-import { OperationObject } from '~/utils/openapi';
+import { OperationObject } from './';
 
 type J = Record<string, any> | any[] | any;
 

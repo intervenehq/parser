@@ -4,7 +4,7 @@ import compact from 'lodash/compact';
 import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
 
-import { tokenizedLength } from '~/utils/openapi/chunk-schema';
+import { tokenizedLength } from './chunk-schema';
 
 function deepenSchema(
   fullSchema: JSONSchema7,

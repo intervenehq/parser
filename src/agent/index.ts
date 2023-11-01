@@ -1,18 +1,18 @@
 import { JSONSchema7 } from 'json-schema';
 import { OpenAPI } from 'openapi-types';
 
-import CodeGen, { CodeGenLanguage } from '~/agent/code-gen';
-import ContextProcessor from '~/agent/context-processor';
-import ExternalResourceDirectory from '~/agent/external-resource-directory';
-import ExternalResourceEvaluator from '~/agent/external-resource-evaluator';
-import { EmbeddingFunctions } from '~/embeddings';
-import { LLM } from '~/llm';
-import { stringifyContext } from '~/utils/context';
-import Logger from '~/utils/logger';
-import { dereferencePath } from '~/utils/openapi/dereference-path';
-import { operationSchemas } from '~/utils/openapi/operation';
-import { extractRequiredSchema } from '~/utils/openapi/required-schema';
-import { t } from '~/utils/template';
+import CodeGen, { CodeGenLanguage } from '../agent/code-gen';
+import ContextProcessor from '../agent/context-processor';
+import ExternalResourceDirectory from '../agent/external-resource-directory';
+import ExternalResourceEvaluator from '../agent/external-resource-evaluator';
+import { EmbeddingFunctions } from '../embeddings';
+import { LLM } from '../llm';
+import { stringifyContext } from '../utils/context';
+import Logger from '../utils/logger';
+import { dereferencePath } from '../utils/openapi/dereference-path';
+import { operationSchemas } from '../utils/openapi/operation';
+import { extractRequiredSchema } from '../utils/openapi/required-schema';
+import { t } from '../utils/template';
 
 export const objectivePrefix = (
   params: Pick<OperationMetdata, 'objective' | 'context'>,

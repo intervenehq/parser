@@ -3,7 +3,7 @@ import { JSONSchema7 } from 'json-schema';
 import cloneDeep from 'lodash/cloneDeep';
 import { JsonValue } from 'type-fest';
 
-import { shallowSchema } from '~/utils/openapi/deepen-schema';
+import { shallowSchema } from './deepen-schema';
 
 function chunkSchema(
   schema: JSONSchema7,

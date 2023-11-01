@@ -1,6 +1,6 @@
 import { JSONSchema7 } from 'json-schema';
 
-import { shallowSchema } from '~/utils/openapi/deepen-schema';
+import { shallowSchema } from '../utils/openapi/deepen-schema';
 
 function stringifyContext(
   context: Record<string, JSONSchema7>,
