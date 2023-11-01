@@ -27,7 +27,7 @@
   },
   "version": "0.1.5",
   "scripts": {
-    "build": "run-p build:*",
+    "build": "npm run build:main && npm run build:module",
     "build:main": "tsc -p tsconfig.json",
     "build:module": "tsc -p tsconfig.module.json",
     "watch:build": "tsc -p tsconfig.json -w",
