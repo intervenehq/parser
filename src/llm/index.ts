@@ -48,7 +48,7 @@ export abstract class LLM<ClientT> {
   abstract logger: Logger;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  constructor(logger: Logger, useLessCapableModel: boolean) {}
+  constructor(_logger: Logger, _useLessCapableModel: boolean) {}
 
   abstract generateStructured: GenerateStructuredChatCompletion;
 

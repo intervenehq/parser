@@ -250,5 +250,7 @@ export default class Parser {
         responseSchema,
       };
     }
+
+    throw 'couldnt find a feasible API';
   };
 }
