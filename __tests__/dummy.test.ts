@@ -1,3 +1,6 @@
+/**
+ * Dummy test case
+ */
 const { expect } = require('@jest/globals');
 const { describe } = require('node:test');
 const someDummyFunction = (a) => {
