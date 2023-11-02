@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "types": ["jest", "node"],
     "incremental": true,
     "target": "es2017",
     "outDir": "lib/main",
