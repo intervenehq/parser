@@ -31,7 +31,8 @@
     "build:main": "tsc -p tsconfig.json",
     "build:module": "tsc -p tsconfig.module.json",
     "watch:build": "tsc -p tsconfig.json -w",
-    "watch:test": "nyc --silent ava --watch"
+    "watch:test": "nyc --silent ava --watch",
+    "test": "jest"
   },
   "author": {
     "name": "Sudhanshu Gautam",
@@ -42,6 +43,7 @@
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
+    "browserslist": "^4.22.1",
     "gpt-tokenizer": "^2.1.2",
     "handlebars": "^4.7.8",
     "lodash": "^4.17.21",
@@ -54,6 +56,7 @@
   },
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "^4.1.0",
+    "@types/jest": "^29.5.7",
     "@types/json-schema": "^7.0.13",
     "@types/lodash": "^4.14.199",
     "@types/node": "^20.8.10",
@@ -64,6 +67,8 @@
     "eslint": "^8.51.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
+    "husky": "^8.0.3",
+    "jest": "^29.7.0",
     "openapi-types": "^12.1.3",
     "prettier": "^3.0.3",
     "type-fest": "^4.3.3",
