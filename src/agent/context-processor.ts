@@ -132,16 +132,12 @@ export default class ContextProcessor {
     return filteredContext;
   }
 
-  private async shortlist(params: {
-    objective: string;
-    context: Record<string, JSONSchema7>;
-    provider: string;
-    path: string;
-    method: string;
-    description: string;
-    inputSchema: JSONSchema7;
-  }) {
-    if (Object.keys(params.context).length === 0) {
+  private async shortlist(
+    params: OperationMetdata & {
+      inputSchema: JSONSchema7;
+    },
+  ) {
+    if (!params.context || Object.keys(params.context).length === 0) {
       return [];
     }
 

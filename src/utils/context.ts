@@ -1,19 +1,11 @@
-import { JSONSchema7 } from 'json-schema';
+import { JsonObject } from 'type-fest';
 
-import { shallowSchema } from '../utils/openapi/deepen-schema';
+function stringifyContext(context: JsonObject | null) {
+  if (!context) return '';
 
-function stringifyContext(
-  context: Record<string, JSONSchema7>,
-  shallow = true,
-) {
   return Object.entries(context)
-    .map(([key, schema]) => {
-      return (
-        '"' +
-        key +
-        '": ' +
-        JSON.stringify(shallow ? shallowSchema(schema) : schema)
-      );
+    .map(([key, value]) => {
+      return '"' + key + '": ' + JSON.stringify(value);
     })
     .join('\n');
 }

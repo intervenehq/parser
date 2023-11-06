@@ -6,8 +6,7 @@ import {
   OperationMetdata,
   operationPrefix,
 } from '../agent/index';
-import { LLM } from '../llm';
-import { stringifyContext } from '../utils/context';
+import { ChatCompletionModels, IChatCompletionMessage, LLM } from '../llm';
 import Logger from '../utils/logger';
 import { chunkSchema, getSubSchema } from '../utils/openapi/chunk-schema';
 import { deepenSchema } from '../utils/openapi/deepen-schema';
@@ -22,7 +21,7 @@ export default class ExternalResourceEvaluator {
 
   async isFeasible(
     params: OperationMetdata & {
-      requiredInputSchema: {
+      requestSchema: {
         body?: JSONSchema7;
         query?: JSONSchema7;
         path?: JSONSchema7;
@@ -42,10 +41,9 @@ export default class ExternalResourceEvaluator {
         'This is preliminary feasibility check, you will have access to more data later - keep it loose',
       ],
       {
-        bodySchema: JSON.stringify(params.requiredInputSchema.body),
-        querySchema: JSON.stringify(params.requiredInputSchema.query),
-        pathSchema: JSON.stringify(params.requiredInputSchema.path),
-        context: stringifyContext(params.context),
+        bodySchema: JSON.stringify(params.requestSchema.body),
+        querySchema: JSON.stringify(params.requestSchema.query),
+        pathSchema: JSON.stringify(params.requestSchema.path),
       },
     );
 
@@ -77,15 +75,15 @@ export default class ExternalResourceEvaluator {
 
   async filterInputSchemas(
     params: OperationMetdata & {
-      requiredInputSchema: {
+      requestSchema: {
         body?: JSONSchema7;
         query?: JSONSchema7;
         path?: JSONSchema7;
-      };
-      inputSchema: {
-        body?: JSONSchema7;
-        query?: JSONSchema7;
-        path?: JSONSchema7;
+        required: {
+          body?: JSONSchema7;
+          query?: JSONSchema7;
+          path?: JSONSchema7;
+        };
       };
     },
   ) {
@@ -93,18 +91,18 @@ export default class ExternalResourceEvaluator {
       await Promise.allSettled([
         await this.filterInputSchema({
           ...params,
-          requiredInputSchema: params.requiredInputSchema.body,
-          inputSchema: params.inputSchema.body,
+          requiredInputSchema: params.requestSchema.required.body,
+          inputSchema: params.requestSchema.body,
         }),
         await this.filterInputSchema({
           ...params,
-          requiredInputSchema: params.requiredInputSchema.query,
-          inputSchema: params.inputSchema.query,
+          requiredInputSchema: params.requestSchema.required.query,
+          inputSchema: params.requestSchema.query,
         }),
         await this.filterInputSchema({
           ...params,
-          requiredInputSchema: params.requiredInputSchema.path,
-          inputSchema: params.inputSchema.path,
+          requiredInputSchema: params.requestSchema.required.path,
+          inputSchema: params.requestSchema.path,
         }),
       ])
     ).map((result) => {
@@ -131,36 +129,69 @@ export default class ExternalResourceEvaluator {
     const chunks = chunkSchema(params.inputSchema ?? {});
 
     for (const { schema: chunkSchema, propertyNames } of chunks) {
+      if (propertyNames.length === 0) continue;
+
+      const messages: IChatCompletionMessage[] = [
+        {
+          role: 'system',
+          content: t([
+            "Your task is to identify and shortlist properties from the JSON schema that are relevant to the user's objective.",
+            'For instance, if the objective is "list emails for label `work`", and the JSON schema has properties like email, date, limit, label, etc.,',
+            'you should shortlist the "label" property because it is specifically referred to in the objective.',
+            'Avoid shortlisting properties that are not directly referred to in the objective or required by the schema, such as "email", "date", or "limit".',
+          ]),
+        },
+        {
+          role: 'user',
+          content: t(
+            [
+              objectivePrefix(params),
+              operationPrefix(params),
+              'The current request includes the following schema:',
+              '```{{filteredSchema}}```',
+              'Your task is to shortlist the properties from the following JSONSchema that are relevant to achieving the objective:',
+              '```{{chunkSchema}}```',
+              'A property is considered relevant if:',
+              '- It is referred to in the objective',
+              '- It is required by the JSON schema',
+              '- Its values are mentioned in the objective or context',
+              'A property is considered irrelevant if:',
+              '- It is not required by the objective or JSON schema',
+              '- Its values are not mentioned in the objective or context',
+              'Remember to provide specific evidence for each shortlisted property. The evidence should refer to the objective or schema.',
+            ],
+            {
+              filteredSchema: JSON.stringify(filteredSchema),
+              chunkSchema: JSON.stringify(chunkSchema),
+            },
+          ),
+        },
+      ];
+
       const { shortlist } = await this.llm.generateStructured({
-        messages: [
-          {
-            role: 'user',
-            content: t(
-              [
-                objectivePrefix(params, false),
-                operationPrefix(params),
-                'And I came up with this input to the resource:',
-                '```{{filteredSchema}}```',
-                'Your task is to shortlist properties that may be relevant to achieve the objective.',
-                'You must choose from the following JSONSchema:',
-                '```{{chunkSchema}}```',
-              ],
-              {
-                filteredSchema: JSON.stringify(filteredSchema),
-                chunkSchema: JSON.stringify(chunkSchema),
-              },
-            ),
-          },
-        ],
+        messages: messages,
+        model: ChatCompletionModels.critical,
         generatorName: 'shortlist_properties',
         generatorDescription:
-          'Shortlist properties that are relevant given the objective',
+          'Identify and shortlist properties from the JSON schema that are relevant to the user objective',
         generatorOutputSchema: Zod.object({
-          shortlist: Zod.array(Zod.enum(propertyNames as [string])),
+          shortlist: Zod.array(
+            Zod.object({
+              propertyName: Zod.enum(propertyNames as [string]),
+              evidence: Zod.string().describe(
+                'Provide a specific reason from the objective or schema that justifies the relevance of this property.',
+              ),
+            }),
+          ).min(0),
         }),
       });
 
-      const subSchema = getSubSchema(chunkSchema, shortlist);
+      await this.logger.log('input shortlist', shortlist, chunkSchema);
+
+      const subSchema = getSubSchema(
+        chunkSchema,
+        shortlist.map((s) => s.propertyName),
+      );
       filteredSchema = mergeSchema(filteredSchema, subSchema);
     }
     filteredSchema = deepenSchema(params.inputSchema ?? {}, filteredSchema);

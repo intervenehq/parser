@@ -1,8 +1,7 @@
-import { encode } from 'gpt-tokenizer';
 import { JSONSchema7 } from 'json-schema';
 import cloneDeep from 'lodash/cloneDeep';
-import { JsonValue } from 'type-fest';
 
+import { tokenizedLength } from '.';
 import { shallowSchema } from './deepen-schema';
 
 function chunkSchema(
@@ -113,13 +112,6 @@ function chunkProperties(
   }
 
   return { required: requiredProperties, chunks };
-}
-
-export function tokenizedLength(property: JsonValue | object) {
-  if (typeof property === 'boolean') return 1;
-
-  const output = JSON.stringify(property);
-  return encode(output).length;
 }
 
 function getSubSchema(schema: JSONSchema7, properties: string[]) {

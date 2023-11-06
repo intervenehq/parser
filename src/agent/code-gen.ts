@@ -41,17 +41,17 @@ function ${name}() {
 }`,
 });
 
-export default class CodeGen {
+export default class CodeGenerator {
   constructor(
     public logger: Logger,
     public llm: LLM<any>,
     public language: CodeGenLanguage,
   ) {}
 
-  async generateInput(
+  async generateInputParamCode(
     params: OperationMetdata & {
       inputSchema: JSONSchema7;
-      filteredContext: OperationMetdata['context'];
+      context: OperationMetdata['context'];
       name: string;
     },
   ) {
@@ -64,7 +64,7 @@ export default class CodeGen {
         objectivePrefix(params, false),
         operationPrefix(params),
         '{{#if needsContext}}',
-        'Here are some variables you can use to construct the output:',
+        'Here is some data that can be used to construct the output:',
         '{{#each context}}`{{@key}}`: ```{{this}}```\n{{/each}}',
         '{{/if}}',
         'Your task is to generate a function in {{language}} that follows exactly this format:',
@@ -72,19 +72,19 @@ export default class CodeGen {
         'Replace <expression>, with a value that satisfies the following JSON schema (call it returnSchema):',
         '```{{inputSchema}}```',
         'Rules:',
-        '1. You can only use data hidden in the objective. You must use it directly.',
+        '1. You can only use data hidden in the objective and context. You must use it directly.',
         '2. You must not assume or imagine any piece of data.',
-        '3. You must reply only with the JS expression. No comments or explanations.',
+        '3. You must reply only with the function definition. No comments or explanations.',
         '4. The generated function must return a value that complies with the given returnSchema.',
         "5. You are going to reply with code that is directly eval'd on a server. Do not wrap it with markdown or '```'.",
-        '6. The generated function must NOT take in any arguments.',
-        '{{#if needsContext}}7. You can use any of the variables by their names directly in the gnerated code. They will be available in the context during execution. {{/if}}',
+        '6. The generated function MUST have EXACTLY 0 arguments.',
+        // '{{#if needsContext}}7. You can use any of the variables by their names directly in the gnerated code. They will be available in the context during execution. {{/if}}',
       ],
       {
         inputSchema: JSON.stringify(params.inputSchema),
-        needsContext: !!Object.keys(params.filteredContext).length,
+        needsContext: params.context && !!Object.keys(params.context).length,
         context: Object.fromEntries(
-          Object.entries(params.filteredContext).map(([key, schema]) => {
+          Object.entries(params.context || {}).map(([key, schema]) => {
             return [key, JSON.stringify(schema)];
           }),
         ),
@@ -117,6 +117,7 @@ export default class CodeGen {
       },
       {
         logit_bias: {
+          // GPT specific, telling GPT to not have ``` in the output (forcing it to not generate markdown)
           '15506': -1,
         },
       },
@@ -145,6 +146,11 @@ export default class CodeGen {
         },
       );
     }
+
+    await this.logger.info(
+      `Generated code for ${params.name}`,
+      generatedCode.content,
+    );
 
     return generatedCode.content;
   }

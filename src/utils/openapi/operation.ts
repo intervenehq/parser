@@ -5,7 +5,7 @@ import { OpenAPIV2, OpenAPIV3 } from 'openapi-types';
 import { $deref, OperationObject } from './';
 import { getDefaultContentType } from './content-type';
 
-function operationSchemas(operationObject: OperationObject) {
+function extractOperationSchemas(operationObject: OperationObject) {
   const parameters = $deref(operationObject.parameters) ?? [];
   const requestBody =
     'requestBody' in operationObject
@@ -102,4 +102,4 @@ function appendParameterToSchema(
   return schema;
 }
 
-export { operationSchemas };
+export { extractOperationSchemas };

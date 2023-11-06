@@ -1,6 +1,6 @@
 import Handlebars from 'handlebars';
 
-export const t = <T>(
+export const t = <T extends object>(
   template: string[],
   data?: T,
   options?: { delim?: string } & CompileOptions,

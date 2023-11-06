@@ -1,4 +1,5 @@
 import { Query } from 'sift';
+import { Simplify } from 'type-fest';
 
 export type InterveneParserItemMetadata = {
   id: string;
@@ -20,10 +21,10 @@ export type StorableInterveneParserItem = {
   metadataHash: string;
 };
 
-export type UpsertEmbeddingResponse = [string, number[]][];
+export type CreateEmbeddingResponse = [string, number[]][];
 export type CreateEmbeddingsFunction = (
   input: string[],
-) => Promise<UpsertEmbeddingResponse>;
+) => Promise<Simplify<CreateEmbeddingResponse>>;
 
 export type SearchEmbeddingsFunction = (
   input: string,

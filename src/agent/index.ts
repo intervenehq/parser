@@ -1,7 +1,8 @@
 import { JSONSchema7 } from 'json-schema';
 import { OpenAPI } from 'openapi-types';
+import { JsonObject } from 'type-fest';
 
-import CodeGen, { CodeGenLanguage } from '../agent/code-gen';
+import CodeGenerator, { CodeGenLanguage } from '../agent/code-gen';
 import ContextProcessor from '../agent/context-processor';
 import ExternalResourceDirectory from '../agent/external-resource-directory';
 import ExternalResourceEvaluator from '../agent/external-resource-evaluator';
@@ -10,7 +11,6 @@ import { LLM } from '../llm';
 import { stringifyContext } from '../utils/context';
 import Logger from '../utils/logger';
 import { dereferencePath } from '../utils/openapi/dereference-path';
-import { operationSchemas } from '../utils/openapi/operation';
 import { extractRequiredSchema } from '../utils/openapi/required-schema';
 import { t } from '../utils/template';
 
@@ -20,42 +20,42 @@ export const objectivePrefix = (
 ) =>
   t(
     [
-      "I have this objective: '''{{objective}}'''",
-      '{{#if showContext}}I also have some historical contextual data, think of these as variables that can be used to achieve the given objective.',
-      'This context is represented as the following JSON schema:',
-      '```{{context}}```{{/if}}',
+      'Help me write an API call.',
+      'Objective: ```{{objective}}```.',
+      '{{#if showContext}}Historical context in JSON: ```{{context}}```{{/if}}',
     ],
     {
       ...params,
       context: stringifyContext(params.context),
-      showContext: withContext && !!Object.keys(params.context).length,
+      showContext:
+        withContext && params.context && !!Object.keys(params.context).length,
     },
   );
 
 export const operationPrefix = (
   params: Pick<
     OperationMetdata,
-    'provider' | 'path' | 'method' | 'description'
+    'provider' | 'path' | 'httpMethod' | 'description'
   >,
   skipFirstLine = false,
 ) =>
   t(
     [
-      skipFirstLine ? '' : 'I have decided to call this external resource:',
+      skipFirstLine ? '' : 'Chosen API:',
       'Provider: {{provider}}',
-      'HTTP path: {{path}}',
-      'HTTP method: {{method}}',
-      '{{#if description}}description: {{description}}{{/if}}',
+      'Path: {{path}}',
+      'Method: {{httpMethod}}',
+      '{{#if description}}Description: {{description}}{{/if}}',
     ],
     params,
   );
 
 export interface OperationMetdata {
   objective: string;
-  context: Record<string, any>;
+  context: JsonObject | null;
   provider: string;
   path: string;
-  method: string;
+  httpMethod: string;
   description: string;
 }
 
@@ -63,7 +63,7 @@ export default class Parser {
   externalResourceDirectory: ExternalResourceDirectory;
   externalResourceEvaluator: ExternalResourceEvaluator;
   contextProcessor: ContextProcessor;
-  codeGen: CodeGen;
+  codeGen: CodeGenerator;
   logger: Logger;
 
   constructor(args: {
@@ -86,7 +86,7 @@ export default class Parser {
       args.llm,
     );
     this.contextProcessor = new ContextProcessor(args.logger, args.llm);
-    this.codeGen = new CodeGen(args.logger, args.llm, language);
+    this.codeGen = new CodeGenerator(args.logger, args.llm, language);
   }
 
   parse = async (
@@ -94,20 +94,20 @@ export default class Parser {
     context: Record<string, JSONSchema7>,
     openAPIs: OpenAPI.Document[],
   ) => {
-    const shortlist = await this.externalResourceDirectory.shortlist(
+    const shortlist = await this.externalResourceDirectory.identify(
       objective,
       context,
       openAPIs,
     );
 
-    this.logger.info('Here are the APIs we are shortlisting for you: \n');
-    this.logger.log(shortlist);
+    await this.logger.info('Here are the APIs we are shortlisting for you: \n');
+    await this.logger.log(shortlist);
 
     for (const api of shortlist) {
       const openapi = openAPIs.find((o) => o.info.title === api.provider)!;
       const operationObject = await dereferencePath(
         openapi,
-        api.method,
+        api.httpMethod,
         api.path,
       );
       if (!operationObject) continue;
@@ -117,7 +117,7 @@ export default class Parser {
         context,
         provider: api.provider,
         path: api.path,
-        method: api.method,
+        method: api.httpMethod,
         description: api.description,
       };
 
@@ -144,17 +144,19 @@ export default class Parser {
         });
 
       if (!isFeasible) {
-        this.logger.warn(
-          `chosen API (${api.provider}: ${api.method} ${api.path}) is not feasible, moving on to the next API. reason: '${reason}'`,
+        await this.logger.warn(
+          `chosen API (${api.provider}: ${api.httpMethod} ${api.path}) is not feasible, moving on to the next API. reason: '${reason}'`,
         );
         continue;
       }
 
-      this.logger.log(
-        `Chosen API (${api.provider}: ${api.method} ${api.path}) is feasible, evaluating it further.`,
+      await this.logger.log(
+        `Chosen API (${api.provider}: ${api.httpMethod} ${api.path}) is feasible, evaluating it further.`,
       );
 
-      this.logger.log('Narrowing down the parameter schemas for the API...');
+      await this.logger.log(
+        'Narrowing down the parameter schemas for the API...',
+      );
 
       const {
         body: filteredBodySchema,
@@ -174,13 +176,13 @@ export default class Parser {
         },
       });
 
-      this.logger.info({
+      await this.logger.info({
         filteredBodySchema,
         filteredQuerySchema,
         filteredPathSchema,
       });
 
-      this.logger.log(
+      await this.logger.log(
         'Narrowing down the historical context that can be used in the API call...',
       );
 
@@ -197,32 +199,32 @@ export default class Parser {
         },
       });
 
-      this.logger.info({
+      await this.logger.info({
         filteredContextForBody,
         filteredContextForQuery,
         filteredContextForPath,
       });
 
-      this.logger.log('Generating the input parameters...');
+      await this.logger.log('Generating the input parameters...');
 
       const generatedCode = (
         await Promise.allSettled([
-          this.codeGen.generateInput({
+          this.codeGen.generateInputParamCode({
             ...operationMetadata,
             inputSchema: filteredBodySchema,
-            filteredContext: filteredContextForBody,
+            context: filteredContextForBody,
             name: 'body',
           }),
-          this.codeGen.generateInput({
+          this.codeGen.generateInputParamCode({
             ...operationMetadata,
             inputSchema: filteredQuerySchema,
-            filteredContext: filteredContextForQuery,
+            context: filteredContextForQuery,
             name: 'query',
           }),
-          this.codeGen.generateInput({
+          this.codeGen.generateInputParamCode({
             ...operationMetadata,
             inputSchema: filteredPathSchema,
-            filteredContext: filteredContextForPath,
+            context: filteredContextForPath,
             name: 'path',
           }),
         ])
@@ -239,7 +241,7 @@ export default class Parser {
 
       return {
         provider: api.provider,
-        method: api.method,
+        method: api.httpMethod,
         path: api.path,
         bodyParams: generatedCode[0],
         queryParams: generatedCode[1],

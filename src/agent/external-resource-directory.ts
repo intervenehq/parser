@@ -1,10 +1,11 @@
 import { encode } from 'gpt-tokenizer';
-import { JSONSchema7 } from 'json-schema';
 import compact from 'lodash/compact';
 import intersection from 'lodash/intersection';
+import uniq from 'lodash/uniq';
 import objecthash from 'object-hash';
 import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types';
 import { stripHtml } from 'string-strip-html';
+import { JsonObject } from 'type-fest';
 import Zod from 'zod';
 
 import { objectivePrefix } from '../agent/index';
@@ -13,17 +14,28 @@ import {
   InterveneParserItemMetadata,
   StorableInterveneParserItem,
 } from '../embeddings';
-import { LLM } from '../llm';
+import { ChatCompletionModels, LLM } from '../llm';
+import { ALPHABET } from '../utils/alphabet';
 import Logger from '../utils/logger';
 import { $deref, OperationObject } from '../utils/openapi';
 import { getDefaultContentType } from '../utils/openapi/content-type';
 import { dereferencePath } from '../utils/openapi/dereference-path';
+import { extractOperationSchemas } from '../utils/openapi/operation';
+import { extractRequiredSchema } from '../utils/openapi/required-schema';
 import { t } from '../utils/template';
 
 export type ExternalResourcePath = string & {
   ____: never;
   split(separator: '#'): [string, string, OpenAPIV2.HttpMethods];
   split(separator: string): string[];
+};
+
+export type APIMatch = {
+  specId: string;
+  httpMethod: OpenAPIV2.HttpMethods;
+  path: string;
+  description: string;
+  provider: string;
 };
 
 export default class ExternalResourceDirectory {
@@ -33,8 +45,13 @@ export default class ExternalResourceDirectory {
     public llm: LLM<any>,
   ) {}
 
-  embed = async (api: OpenAPI.Document) => {
-    this.logger.log('Preparing OpenAPI specs for embedding');
+  /**
+   * @param api the openapi document
+   * @param id a unique identifier for the api document
+   * @param provider the service provider (product/company) whom this api belongs to
+   */
+  embed = async (api: OpenAPI.Document, id: string, provider: string) => {
+    await this.logger.log('Preparing OpenAPI specs for embedding');
 
     // <keywords>: [<api1>, <api2>]
     const pathMapping = new Map<string, Set<string>>();
@@ -46,7 +63,7 @@ export default class ExternalResourceDirectory {
         Object.values(OpenAPIV2.HttpMethods),
         Object.keys(api.paths[path]!),
       )) {
-        const fullPath = [api.info.title, path, httpMethod].join('#');
+        const fullPath = [id, path, httpMethod].join('#');
 
         const operationObject = $deref(
           await dereferencePath(
@@ -71,19 +88,19 @@ export default class ExternalResourceDirectory {
       }
     }
 
-    this.logger.log(
+    await this.logger.log(
       'Embedding OpenAPI specs... (This might take a while for Pinecone)',
     );
 
     // Process keys in batches
-    await this.processKeysInBatches(pathMapping, api);
+    await this.processKeysInBatches(pathMapping, provider);
 
-    this.logger.log('All done with embedding, completed without errors.');
+    await this.logger.log('All done with embedding, completed without errors.');
   };
 
   private async processKeysInBatches(
     pathMapping: Map<string, Set<string>>,
-    api: OpenAPI.Document,
+    provider: string,
   ) {
     const allKeys = Array.from(pathMapping.keys());
     const batchSize = 1000;
@@ -112,7 +129,7 @@ export default class ExternalResourceDirectory {
       const metadataMap = createMetadataMap(
         trimmedToOriginalKeyMap,
         pathMapping,
-        api,
+        provider,
       );
       const metadataHashMap = createMetadataHashMap(metadataMap);
 
@@ -130,7 +147,7 @@ export default class ExternalResourceDirectory {
 
       const embeddingsToStore: StorableInterveneParserItem[] = [];
 
-      this.logger.log('Embedding', keysToEmbed.length, 'keys');
+      await this.logger.log('Embedding', keysToEmbed.length, 'keys');
       const embeddingsResponse = keysToEmbed.length
         ? await this.embeddingFunctions.createEmbeddings(keysToEmbed)
         : [];
@@ -147,7 +164,7 @@ export default class ExternalResourceDirectory {
         }
       }
 
-      this.logger.log(
+      await this.logger.log(
         'Storing',
         embeddingsToStore.length,
         'embeddings to store',
@@ -157,8 +174,33 @@ export default class ExternalResourceDirectory {
     }
   }
 
-  search = async (objective: string, providers: string[]) => {
-    this.logger.info('Search called with objective:', objective);
+  /**
+   *
+   * @param apiMap a map of api spec identifier to openapi document
+   * @param providerMap a map of api spec identifier to service provider
+   * @param objective the objective
+   */
+  identify = async (
+    apiMap: Record<string, OpenAPI.Document>,
+    providerMap: Record<string, string>,
+    objective: string,
+    context: JsonObject | null,
+  ): Promise<APIMatch[]> => {
+    const matches = await this.query(apiMap, providerMap, objective);
+    await this.logger.log('Matches:', matches);
+    const shortlist = await this.shortlist(matches, apiMap, context, objective);
+    await this.logger.log('Shortlist:', shortlist);
+
+    return shortlist;
+  };
+
+  private query = async (
+    apiMap: Record<string, OpenAPI.Document>,
+    providerMap: Record<string, string>,
+    objective: string,
+  ): Promise<APIMatch[]> => {
+    await this.logger.info('Search called with objective:', objective);
+    const providers = uniq(Object.values(providerMap));
 
     const embedding = await this.embeddingFunctions.createEmbeddings([
       objective,
@@ -167,7 +209,7 @@ export default class ExternalResourceDirectory {
     const matches = await this.embeddingFunctions.searchItems(
       objective,
       embedding[0][1],
-      10,
+      20,
       providers.length > 1
         ? {
             provider: {
@@ -183,111 +225,190 @@ export default class ExternalResourceDirectory {
 
     const pathScores: Map<string, number> = new Map();
 
+    // Iterate over each match
     for (const match of matches) {
       const matchPaths = match.metadata?.paths;
 
+      // Iterate over each path in the match
       for (const path of matchPaths) {
+        // Get the current score of the path or default to 0 if it doesn't exist
         const score = pathScores.get(path) ?? 0;
+        // Update the score of the path
         pathScores.set(path, score + (1 - (match.distance ?? 0)));
       }
     }
 
+    // Sort the paths based on their scores
     const sortedPaths = Array.from(pathScores.entries()).sort(
       (a, b) => b[1] - a[1],
     );
 
-    return sortedPaths
+    // Get the top 15 paths
+    const matchingPaths = sortedPaths
       .map((entry) => entry[0])
-      .splice(0, 15) as ExternalResourcePath[];
+      .splice(0, 7) as ExternalResourcePath[];
+
+    return compact(
+      matchingPaths.map((path) => {
+        const [apiSpecId, pathName, httpMethod] = path.split('#');
+        const operationObject =
+          apiMap[apiSpecId].paths?.[pathName]?.[httpMethod];
+
+        if (!operationObject) return;
+
+        const description =
+          operationObject.description ??
+          operationObject.summary ??
+          operationObject.operationId ??
+          path;
+
+        return {
+          specId: apiSpecId,
+          httpMethod: httpMethod,
+          path: pathName,
+          description,
+          provider: providerMap[apiSpecId],
+        } as APIMatch;
+      }),
+    );
   };
 
-  shortlist = async (
+  private shortlist = async (
+    matches: APIMatch[],
+    apiMap: Record<string, OpenAPI.Document>,
+    context: JsonObject | null,
     objective: string,
-    context: Record<string, JSONSchema7>,
-    openapis: OpenAPI.Document[],
   ) => {
-    const providers = openapis.map((openapi) => openapi.info.title);
-
-    const matches = await this.search(objective, providers);
     const matchDetails: {
       provider: string;
-      method: OpenAPIV2.HttpMethods;
+      httpMethod: OpenAPIV2.HttpMethods;
       path: string;
       description: string;
     }[] = [];
 
     for (const match of matches) {
-      const [provider, path, method] = match.split('#');
-
-      const openapi = openapis.find((o) => o.info.title === provider);
-      const operationObject = openapi?.paths?.[path]?.[method];
+      const openapi = apiMap[match.specId];
+      const operationObject = openapi?.paths?.[match.path]?.[match.httpMethod];
       if (!operationObject) continue;
 
       matchDetails.push({
-        provider,
-        method,
-        path,
+        provider: match.provider,
+        httpMethod: match.httpMethod,
+        path: match.path,
         description: stripHtml(
           operationObject.description ??
             operationObject.summary ??
             operationObject.operationId ??
-            match,
+            match.path,
         ).result,
       });
     }
 
     const matchesStr = matchDetails.map(
-      ({ provider, method, path, description }) => {
-        return `${provider}: ${method.toUpperCase()} ${path}\n'${description}'`;
+      ({ provider, httpMethod, path, description }) => {
+        return `${provider}: ${httpMethod.toUpperCase()} ${path}\n'${description}'`;
       },
     );
 
     const message = t(
       [
         objectivePrefix({ objective, context }),
-        'I want to figure out what external resources (APIs) need to be called to achieve this objective.',
-        'Your task is to shortlist APIs for me, here is the list:',
+        'Your task is to shortlist APIs that can be used to accomplish the objective',
+        'Here is a list of possible choices for the API call (in randomized order):',
         '{{#each matchesStr}}',
-        '{{@index}}. {{this}}',
+        '{{getAlphabet @index}}. {{this}}\n',
         '{{/each}}',
+        'Your task is to shortlist at most 5 APIs in descending order of fittingness.',
         'Rules:',
-        '1. It is important that you take note of the index.',
-        '2. You must choose at lest one API.',
-        '3. You can choose multiple APIs.',
-        '4. Keep the list liberal.',
-        '5. The order of the list matters, start with the best fit.',
+        '1. The most probable API should be at the top of the list.',
+        '2. You must choose at least one API.',
+        '3. Provide reasoning for each choice and how it will help with the objective',
       ],
       {
         matchesStr,
       },
     );
 
-    this.logger.log('Asking LLMs to shortlist the correct APIs');
+    await this.logger.log('Asking LLMs to shortlist the correct APIs', message);
 
-    const { indexes } = await this.llm.generateStructured({
+    const { indexes: shortlistedIndexes } = await this.llm.generateStructured({
       messages: [
         {
           content: message,
           role: 'user',
         },
       ],
+      model: ChatCompletionModels.trivial,
       generatorName: 'api_shortlist',
       generatorDescription:
         'Shortlist APIs that might work out for the objective.',
       generatorOutputSchema: Zod.object({
         indexes: Zod.array(
-          Zod.number()
-            .min(0)
-            .max(matchesStr.length - 1)
-            .describe('The index of API in the given list'),
+          Zod.object({
+            index: Zod.enum(
+              ALPHABET.slice(0, matchesStr.length) as [string],
+            ).describe('The index of API in the given list'),
+            reason: Zod.string().describe(
+              'The reasoning for choosing the API, less than 10 words',
+            ),
+          }),
         ),
       }),
     });
+    await this.logger.log('Shortlisted indexes', shortlistedIndexes);
 
-    return matchDetails.filter((_, index) => {
-      return indexes.includes(index);
-    });
+    const filteredMatches: APIMatch[] = [];
+
+    for (const matchI of shortlistedIndexes) {
+      const match = matches[ALPHABET.indexOf(matchI.index)];
+      if (match) filteredMatches.push(match);
+    }
+
+    return filteredMatches;
   };
+
+  async extractOperationComponents(
+    api: OpenAPI.Document,
+    pathName: string,
+    httpMethod: OpenAPIV2.HttpMethods,
+  ) {
+    const operationObject = await dereferencePath(api, httpMethod, pathName);
+    if (!operationObject) {
+      throw `Could not find operation object for ${httpMethod.toUpperCase()} ${pathName}`;
+    }
+
+    const {
+      bodySchema,
+      querySchema,
+      pathSchema,
+      requestContentType,
+      responseContentType,
+      responseSchema,
+    } = extractOperationSchemas(operationObject);
+
+    const requiredBodySchema = extractRequiredSchema(bodySchema);
+    const requiredQuerySchema = extractRequiredSchema(querySchema);
+    const requiredPathSchema = extractRequiredSchema(pathSchema);
+
+    return {
+      operationObject,
+      requestSchema: {
+        body: bodySchema,
+        query: querySchema,
+        path: pathSchema,
+        contentType: requestContentType,
+        required: {
+          body: requiredBodySchema,
+          query: requiredQuerySchema,
+          path: requiredPathSchema,
+        },
+      },
+      response: {
+        contentType: responseContentType,
+        schema: responseSchema,
+      },
+    };
+  }
 }
 
 function addParametersToPathMapping(
@@ -303,7 +424,7 @@ function addParametersToPathMapping(
 }
 
 function addRequestBodyPropertiesToPathMapping(
-  operationObject: any,
+  operationObject: OperationObject,
   pathMapping: Map<string, Set<string>>,
   fullPath: string,
 ) {
@@ -327,7 +448,9 @@ function addRequestBodyPropertiesToPathMapping(
     }
     if ('items' in requestBodySchema && requestBodySchema.items) {
       if (Array.isArray(requestBodySchema.items)) {
-        properties ||= $deref(requestBodySchema.items[0]).properties;
+        properties ||= $deref(
+          requestBodySchema.items[0] as OpenAPIV3.SchemaObject,
+        ).properties;
       } else {
         properties ||= $deref(requestBodySchema.items).properties ?? {};
       }
@@ -342,7 +465,7 @@ function addRequestBodyPropertiesToPathMapping(
 }
 
 function addOperationObjectToPathMapping(
-  operationObject: any,
+  operationObject: OperationObject,
   pathMapping: Map<string, Set<string>>,
   fullPath: string,
 ) {
@@ -357,14 +480,14 @@ function addOperationObjectToPathMapping(
 function createMetadataMap(
   trimmedToOriginalKeyMap: Record<string, string>,
   pathMapping: Map<string, Set<string>>,
-  api: OpenAPI.Document,
+  provider: string,
 ): Record<string, InterveneParserItemMetadata> {
   return Object.fromEntries(
     Object.entries(trimmedToOriginalKeyMap).map(([trimmedKey, originalKey]) => [
       trimmedKey,
       {
         paths: Array.from(pathMapping.get(originalKey)!),
-        provider: api.info.title,
+        provider,
         id: originalKey,
       },
     ]),
