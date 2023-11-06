@@ -1,4 +1,5 @@
 {
+  "version": "0.1.8",
   "name": "@intervene/parser",
   "main": "lib/main/index.js",
   "typings": "lib/main/index.d.ts",
@@ -12,6 +13,10 @@
     "LICENSE",
     "README.md"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/intervenehq/parser"
+  },
   "ava": {
     "failFast": true,
     "timeout": "60s",
@@ -25,7 +30,6 @@
       "!lib/module/**"
     ]
   },
-  "version": "0.1.7",
   "scripts": {
     "build": "npm run build:main && npm run build:module",
     "build:main": "tsc -p tsconfig.json",
