@@ -24,9 +24,9 @@ import { extractOperationSchemas } from '../utils/openapi/operation';
 import { extractRequiredSchema } from '../utils/openapi/required-schema';
 import { t } from '../utils/template';
 
-export type ExternalResourcePath = string & {
+export type OperationPath = string & {
   ____: never;
-  split(separator: '#'): [string, string, OpenAPIV2.HttpMethods];
+  split(separator: '#' | '|'): [string, string, OpenAPIV2.HttpMethods];
   split(separator: string): string[];
 };
 
@@ -246,7 +246,7 @@ export default class ExternalResourceDirectory {
     // Get the top 15 paths
     const matchingPaths = sortedPaths
       .map((entry) => entry[0])
-      .splice(0, 7) as ExternalResourcePath[];
+      .splice(0, 7) as OperationPath[];
 
     return compact(
       matchingPaths.map((path) => {

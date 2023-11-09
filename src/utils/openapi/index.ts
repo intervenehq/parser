@@ -2,7 +2,7 @@ import { encode } from 'gpt-tokenizer';
 import { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types';
 import { JsonValue } from 'type-fest';
 
-type ExcludeReference<T> = T extends
+export type ExcludeReference<T> = T extends
   | OpenAPIV3.ReferenceObject
   | OpenAPIV2.ReferenceObject
   ? never

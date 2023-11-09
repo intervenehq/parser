@@ -1,0 +1,157 @@
+{
+  "$schema": "https://spec.openapis.org/oas/3.0/schema/latest",
+  "info": {
+    "title": "OpenAPI Petstore",
+    "version": "1.0.0",
+    "description": "This is a sample Pet Store Server based on the OpenAPI 3.0 specification"
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/pets": {
+      "parameters": [
+        {
+          "name": "param1",
+          "description": "param1 description",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "put": {
+        "summary": "Put pets endpoint",
+        "description": "Put pets endpoint description",
+        "operationId": "getEndpoint",
+        "parameters": [
+          {
+            "name": "param2",
+            "description": "param2 description",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Request body description",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prop1": {
+                    "description": "prop1 description",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oa": ["write:pets", "read:pets"]
+          },
+          {
+            "oa": ["admin:pets"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "prop1": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Post endpoint",
+        "description": "Post endpoint description",
+        "operationId": "postEndpoint",
+        "parameters": [
+          {
+            "name": "param2",
+            "description": "param2 description",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Request body description",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prop1": {
+                    "description": "post prop1 description",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oa": ["create:pets"]
+          },
+          {
+            "oa": ["admin:pets"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "prop1": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {},
+    "securitySchemes": {
+      "oa": {
+        "type": "oauth2",
+        "flows": {
+          "implicit": {
+            "authorizationUrl": "https://example.com/api/oauth/dialog",
+            "scopes": {
+              "write:pets": "modify pets in your account",
+              "read:pets": "read your pets",
+              "create:pets": "create pets",
+              "admin:pets": "admin pets"
+            }
+          }
+        }
+      }
+    }
+  }
+}
