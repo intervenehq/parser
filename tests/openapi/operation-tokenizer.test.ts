@@ -16,9 +16,10 @@ describe('Operation Tokenizer', () => {
     const pathItemParameters = openapi.paths!['/pets']!.parameters ?? [];
 
     const apiSpecId = 'api-spec-id';
-    const a_ = `${apiSpecId}|`;
+    const p1 = `${apiSpecId}:`;
+    const p2 = `${apiSpecId}|`;
     function h(str: string): string {
-      return crypto.createHash('sha256').update(str).digest('hex');
+      return p2 + crypto.createHash('sha256').update(str).digest('hex');
     }
 
     const tokenMap: TokenMap = new Map();
@@ -35,22 +36,22 @@ describe('Operation Tokenizer', () => {
 
     expect(tokenMap.size).toEqual(4);
 
-    const params1Id = a_ + h('param1 description');
-    const params2Id = a_ + h('param2 description');
-    const putPetsId = a_ + h('Put pets endpoint description');
+    const params1Id = h('param1 description');
+    const params2Id = h('param2 description');
+    const putPetsId = h('Put pets endpoint description');
 
     expect(tokenMap.has(params1Id)).toBeTrue();
     expect(tokenMap.has(params2Id)).toBeTrue();
     expect(tokenMap.has(putPetsId)).toBeTrue();
 
     expect(tokenMap.get(params1Id)!.paths).toEqual(
-      new Set([`${a_}/pets|put`]) as Set<OperationPath>,
+      new Set([`${p2}/pets|put`]) as Set<OperationPath>,
     );
     expect(tokenMap.get(params2Id)!.paths).toEqual(
-      new Set([`${a_}/pets|put`]) as Set<OperationPath>,
+      new Set([`${p2}/pets|put`]) as Set<OperationPath>,
     );
     expect(tokenMap.get(params2Id)!.scopes).toEqual(
-      new Set([`${a_}write:pets`, `${a_}read:pets`, `${a_}admin:pets`]),
+      new Set([`${p1}write:pets`, `${p1}read:pets`, `${p1}admin:pets`]),
     );
 
     new OperationTokenizer(
@@ -64,14 +65,14 @@ describe('Operation Tokenizer', () => {
     ).tokenize();
 
     expect(tokenMap.get(params2Id)!.paths).toEqual(
-      new Set([`${a_}/pets|put`, `${a_}/pets|post`]) as Set<OperationPath>,
+      new Set([`${p2}/pets|put`, `${p2}/pets|post`]) as Set<OperationPath>,
     );
     expect(tokenMap.get(params2Id)!.scopes).toEqual(
       new Set([
-        `${a_}write:pets`,
-        `${a_}read:pets`,
-        `${a_}admin:pets`,
-        `${a_}create:pets`,
+        `${p1}write:pets`,
+        `${p1}read:pets`,
+        `${p1}admin:pets`,
+        `${p1}create:pets`,
       ]),
     );
   });
