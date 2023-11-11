@@ -1,5 +1,5 @@
 {
-  "version": "0.1.8",
+  "version": "0.1.9",
   "name": "@intervene/parser",
   "main": "lib/main/index.js",
   "typings": "lib/main/index.d.ts",
