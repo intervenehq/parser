@@ -1,6 +1,6 @@
 import { JSONSchema7 } from 'json-schema';
 import cloneDeep from 'lodash/cloneDeep';
-import { OpenAPIV2, OpenAPIV3 } from 'openapi-types';
+import { OpenAPI, OpenAPIV2, OpenAPIV3 } from 'openapi-types';
 
 import { $deref, OperationObject } from './';
 import { getDefaultContentType } from './content-type';
@@ -102,4 +102,64 @@ function appendParameterToSchema(
   return schema;
 }
 
-export { extractOperationSchemas };
+function getOperationScopes(
+  specId: string,
+  operationObject: OperationObject,
+  oauthSecuritySchemeName: string | undefined,
+) {
+  if (!operationObject.security) return [];
+
+  let scopes: string[] | undefined;
+
+  if (oauthSecuritySchemeName) {
+    for (const securityReq of operationObject.security) {
+      const securityScopes = securityReq[oauthSecuritySchemeName];
+      if (!securityScopes) continue;
+
+      scopes ||= [];
+      scopes.push(...decorateScopes(specId, securityScopes));
+    }
+  }
+
+  return scopes ?? decorateScopes(specId, ['_default']);
+}
+
+function decorateScopes(specId: string, scope: string[]) {
+  return scope.map((s) => `${specId}:${s}`);
+}
+
+function getOauthSecuritySchemeName(openapi: OpenAPI.Document) {
+  if ('securityDefinitions' in openapi && openapi.securityDefinitions) {
+    for (const [name, securityDefinition] of Object.entries(
+      openapi.securityDefinitions,
+    )) {
+      if (securityDefinition.type === 'oauth2') {
+        return name;
+      }
+    }
+  }
+
+  if (
+    'components' in openapi &&
+    openapi.components &&
+    'securitySchemes' in openapi.components &&
+    openapi.components.securitySchemes
+  ) {
+    for (const [name, $securityScheme] of Object.entries(
+      openapi.components.securitySchemes,
+    )) {
+      const securityScheme = $deref($securityScheme);
+      if (securityScheme.type === 'oauth2') {
+        return name;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+export {
+  extractOperationSchemas,
+  getOauthSecuritySchemeName,
+  getOperationScopes,
+};

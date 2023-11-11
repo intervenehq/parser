@@ -1,10 +1,13 @@
 import crypto from 'crypto';
+import { encode } from 'gpt-tokenizer';
 import { IJsonSchema, OpenAPI } from 'openapi-types';
+import { stripHtml } from 'string-strip-html';
 
 import { OperationPath } from '../../agent/external-resource-directory';
 
 import { $deref } from '.';
 import { getDefaultContentType } from './content-type';
+import { getOperationScopes } from './operation';
 import { TokenMap } from './tokenizer';
 
 export class OperationTokenizer {
@@ -85,9 +88,16 @@ export class OperationTokenizer {
       this.apiSpecId +
       '|' +
       crypto.createHash('sha256').update(tokens).digest('hex');
+
+    // eslint-disable-next-line no-control-regex
+    let escapedTokens = stripHtml(tokens).result.replace(/[^\x00-\x7F]/g, '');
+    while (encode(escapedTokens).length > 8000) {
+      escapedTokens = escapedTokens.slice(0, -100);
+    }
+
     if (!this.tokenMap.has(id)) {
       this.tokenMap.set(id, {
-        tokens,
+        tokens: escapedTokens,
         paths: new Set(),
         scopes: new Set(),
         apiSpecId: this.apiSpecId,
@@ -99,23 +109,11 @@ export class OperationTokenizer {
   }
 
   private get oauthScopes() {
-    if (!this.operationObj.security || !this.oauthSecuritySchemeName) return [];
-
-    let scopes: string[] | undefined;
-
-    for (const securityReq of this.operationObj.security) {
-      const securityScopes = securityReq[this.oauthSecuritySchemeName];
-      if (!securityScopes) continue;
-
-      scopes ||= [];
-      scopes.push(...this.decorateScopes(securityScopes));
-    }
-
-    return scopes ?? this.decorateScopes(['_default']);
-  }
-
-  private decorateScopes(scope: string[]) {
-    return scope.map((s) => `${this.apiSpecId}|${s}`);
+    return getOperationScopes(
+      this.apiSpecId,
+      this.operationObj,
+      this.oauthSecuritySchemeName,
+    );
   }
 
   private get path() {

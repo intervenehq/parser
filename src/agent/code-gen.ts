@@ -78,6 +78,8 @@ export default class CodeGenerator {
         '4. The generated function must return a value that complies with the given returnSchema.',
         "5. You are going to reply with code that is directly eval'd on a server. Do not wrap it with markdown or '```'.",
         '6. The generated function MUST have EXACTLY 0 arguments.',
+        '7. You do not have access to any external libraries or window or document objects.',
+        '8. You can use any global variables present in a typical nodejs environment.',
         // '{{#if needsContext}}7. You can use any of the variables by their names directly in the gnerated code. They will be available in the context during execution. {{/if}}',
       ],
       {

@@ -3,7 +3,7 @@ import { OpenAPI, OpenAPIV2 } from 'openapi-types';
 
 import { OperationPath } from '../../agent/external-resource-directory';
 
-import { $deref } from '.';
+import { getOauthSecuritySchemeName } from './operation';
 import { OperationTokenizer } from './operation-tokenizer';
 
 export type TokenMap = Map<
@@ -21,11 +21,10 @@ export class OpenAPITokenizer {
 
   constructor(
     private apiSpecId: string,
-    private providers: string[],
     private openapi: OpenAPI.Document,
   ) {}
 
-  async getTokenMap() {
+  async tokenize() {
     this.openapi = await SwaggerParser.dereference(this.openapi);
 
     for (const path in this.paths) {
@@ -35,7 +34,7 @@ export class OpenAPITokenizer {
         const operation = this.paths[path]![method as OpenAPIV2.HttpMethods];
         if (!operation) continue;
 
-        new OperationTokenizer(
+        const tokenizer = new OperationTokenizer(
           this.tokenMap,
           this.apiSpecId,
           path,
@@ -44,6 +43,7 @@ export class OpenAPITokenizer {
           parameters,
           this.oauthSecuritySchemeName,
         );
+        tokenizer.tokenize();
       }
     }
 
@@ -55,35 +55,6 @@ export class OpenAPITokenizer {
   }
 
   get oauthSecuritySchemeName() {
-    if (
-      'securityDefinitions' in this.openapi &&
-      this.openapi.securityDefinitions
-    ) {
-      for (const [name, securityDefinition] of Object.entries(
-        this.openapi.securityDefinitions,
-      )) {
-        if (securityDefinition.type === 'oauth2') {
-          return name;
-        }
-      }
-    }
-
-    if (
-      'components' in this.openapi &&
-      this.openapi.components &&
-      'securitySchemes' in this.openapi.components &&
-      this.openapi.components.securitySchemes
-    ) {
-      for (const [name, $securityScheme] of Object.entries(
-        this.openapi.components.securitySchemes,
-      )) {
-        const securityScheme = $deref($securityScheme);
-        if (securityScheme.type === 'oauth2') {
-          return name;
-        }
-      }
-    }
-
-    return undefined;
+    return getOauthSecuritySchemeName(this.openapi);
   }
 }

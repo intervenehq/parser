@@ -1,41 +1,37 @@
-import { encode } from 'gpt-tokenizer';
 import compact from 'lodash/compact';
-import intersection from 'lodash/intersection';
-import uniq from 'lodash/uniq';
 import objecthash from 'object-hash';
-import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types';
+import { OpenAPI, OpenAPIV2 } from 'openapi-types';
 import { stripHtml } from 'string-strip-html';
 import { JsonObject } from 'type-fest';
 import Zod from 'zod';
 
 import { objectivePrefix } from '../agent/index';
-import {
-  EmbeddingFunctions,
-  InterveneParserItemMetadata,
-  StorableInterveneParserItem,
-} from '../embeddings';
+import { EmbeddingFunctions, StorableInterveneParserItem } from '../embeddings';
 import { ChatCompletionModels, LLM } from '../llm';
 import { ALPHABET } from '../utils/alphabet';
 import Logger from '../utils/logger';
-import { $deref, OperationObject } from '../utils/openapi';
-import { getDefaultContentType } from '../utils/openapi/content-type';
 import { dereferencePath } from '../utils/openapi/dereference-path';
-import { extractOperationSchemas } from '../utils/openapi/operation';
+import {
+  extractOperationSchemas,
+  getOauthSecuritySchemeName,
+  getOperationScopes,
+} from '../utils/openapi/operation';
 import { extractRequiredSchema } from '../utils/openapi/required-schema';
+import { OpenAPITokenizer, TokenMap } from '../utils/openapi/tokenizer';
 import { t } from '../utils/template';
 
 export type OperationPath = string & {
   ____: never;
-  split(separator: '#' | '|'): [string, string, OpenAPIV2.HttpMethods];
+  split(separator: '|'): [string, string, OpenAPIV2.HttpMethods];
   split(separator: string): string[];
 };
 
 export type APIMatch = {
-  specId: string;
+  apiSpecId: string;
+  scopes: string[];
   httpMethod: OpenAPIV2.HttpMethods;
   path: string;
   description: string;
-  provider: string;
 };
 
 export default class ExternalResourceDirectory {
@@ -50,118 +46,66 @@ export default class ExternalResourceDirectory {
    * @param id a unique identifier for the api document
    * @param provider the service provider (product/company) whom this api belongs to
    */
-  embed = async (api: OpenAPI.Document, id: string, provider: string) => {
-    await this.logger.log('Preparing OpenAPI specs for embedding');
+  embed = async (api: OpenAPI.Document, id: string) => {
+    await this.logger.log('Preparing embedding items for the openapi spec');
 
-    // <keywords>: [<api1>, <api2>]
-    const pathMapping = new Map<string, Set<string>>();
-
-    // Iterate over all paths in the API
-    for (const path in api.paths) {
-      // Iterate over all HTTP methods for the current path
-      for (const httpMethod of intersection(
-        Object.values(OpenAPIV2.HttpMethods),
-        Object.keys(api.paths[path]!),
-      )) {
-        const fullPath = [id, path, httpMethod].join('#');
-
-        const operationObject = $deref(
-          await dereferencePath(
-            api as OpenAPIV3.Document,
-            httpMethod as OpenAPIV2.HttpMethods,
-            path,
-          ),
-        )!;
-
-        // Add parameters to keyPathMap
-        addParametersToPathMapping(operationObject, pathMapping, fullPath);
-
-        // Add request body properties to keyPathMap
-        addRequestBodyPropertiesToPathMapping(
-          operationObject,
-          pathMapping,
-          fullPath,
-        );
-
-        // Add operation object to keyPathMap
-        addOperationObjectToPathMapping(operationObject, pathMapping, fullPath);
-      }
-    }
+    const tokenizer = new OpenAPITokenizer(id, api);
+    const tokenMap = await tokenizer.tokenize();
 
     await this.logger.log(
-      'Embedding OpenAPI specs... (This might take a while for Pinecone)',
+      `Embedding OpenAPI specs... ${tokenMap.size} items to embed`,
     );
 
     // Process keys in batches
-    await this.processKeysInBatches(pathMapping, provider);
+    await this.processKeysInBatches(tokenMap);
 
     await this.logger.log('All done with embedding, completed without errors.');
   };
 
-  private async processKeysInBatches(
-    pathMapping: Map<string, Set<string>>,
-    provider: string,
-  ) {
-    const allKeys = Array.from(pathMapping.keys());
+  private async processKeysInBatches(tokenMap: TokenMap) {
+    const itemIds = Array.from(tokenMap.keys());
     const batchSize = 1000;
 
     // Process keys in batches
-    for (let i = 0; i < allKeys.length; i += batchSize) {
-      const batchKeys = allKeys.slice(i, i + batchSize).filter((key) => !!key);
-
-      // Create a map of trimmed keys to original keys
-      const trimmedToOriginalKeyMap = Object.fromEntries(
-        batchKeys.map((originalKey) => {
-          let trimmedKey = stripHtml(originalKey).result;
-
-          while (encode(trimmedKey).length > 8000) {
-            trimmedKey = trimmedKey.slice(0, -100);
-          }
-
-          // eslint-disable-next-line no-control-regex
-          trimmedKey = trimmedKey.replace(/[^\x00-\x7F]/g, '');
-
-          return [trimmedKey, originalKey];
-        }),
-      );
-
-      // Create metadata map and metadata hash map
-      const metadataMap = createMetadataMap(
-        trimmedToOriginalKeyMap,
-        pathMapping,
-        provider,
-      );
-      const metadataHashMap = createMetadataHashMap(metadataMap);
+    for (let i = 0; i < itemIds.length; i += batchSize) {
+      const idsBatch = itemIds.slice(i, i + batchSize).filter((key) => !!key);
 
       // Retrieve stored embeddings
-      const storedEmbeddings = await this.embeddingFunctions.retrieveItems(
-        Object.keys(trimmedToOriginalKeyMap),
-      );
+      const storedEmbeddings =
+        await this.embeddingFunctions.retrieveItems(idsBatch);
+      const existingItemIds = storedEmbeddings.map((embedding) => embedding.id);
 
       // Determine which keys need to be embedded
-      const keysToEmbed = getKeysToEmbed(
-        trimmedToOriginalKeyMap,
-        storedEmbeddings,
-        metadataHashMap,
-      );
+      const idsToEmbed = idsBatch.filter((id) => !existingItemIds.includes(id));
+      const tokensToEmbed = idsToEmbed
+        .map((id) => tokenMap.get(id)!.tokens)
+        .filter((t) => !!t);
 
       const embeddingsToStore: StorableInterveneParserItem[] = [];
 
-      await this.logger.log('Embedding', keysToEmbed.length, 'keys');
-      const embeddingsResponse = keysToEmbed.length
-        ? await this.embeddingFunctions.createEmbeddings(keysToEmbed)
+      await this.logger.log('Embedding', tokensToEmbed.length, 'keys');
+      const embeddingsResponse = tokensToEmbed.length
+        ? await this.embeddingFunctions.createEmbeddings(tokensToEmbed)
         : [];
       const embeddingsMap = Object.fromEntries(embeddingsResponse);
 
-      for (const trimmedKey of Object.keys(trimmedToOriginalKeyMap)) {
-        if (keysToEmbed.includes(trimmedKey)) {
-          embeddingsToStore.push({
-            id: trimmedKey,
-            embeddings: embeddingsMap[trimmedKey],
-            metadataHash: metadataHashMap[trimmedKey],
-            metadata: metadataMap[trimmedKey],
-          });
-        }
+      for (const id of idsToEmbed) {
+        const item = tokenMap.get(id)!;
+        const embedding = embeddingsMap[item.tokens];
+
+        const metadata = {
+          paths: Array.from(tokenMap.get(id)!.paths),
+          scopes: Array.from(tokenMap.get(id)!.scopes),
+          apiSpecId: tokenMap.get(id)!.apiSpecId,
+          tokens: item.tokens,
+        };
+
+        embeddingsToStore.push({
+          id: id,
+          embeddings: embedding,
+          metadataHash: objecthash(metadata),
+          metadata,
+        });
       }
 
       await this.logger.log(
@@ -177,16 +121,17 @@ export default class ExternalResourceDirectory {
   /**
    *
    * @param apiMap a map of api spec identifier to openapi document
-   * @param providerMap a map of api spec identifier to service provider
-   * @param objective the objective
+   * @param scopes the scopes available to the user
+   * @param objective the objective to accomplish
+   * @param context the context of the objective
    */
   identify = async (
     apiMap: Record<string, OpenAPI.Document>,
-    providerMap: Record<string, string>,
+    scopes: string[],
     objective: string,
     context: JsonObject | null,
   ): Promise<APIMatch[]> => {
-    const matches = await this.query(apiMap, providerMap, objective);
+    const matches = await this.query(apiMap, scopes, objective);
     await this.logger.log('Matches:', matches);
     const shortlist = await this.shortlist(matches, apiMap, context, objective);
     await this.logger.log('Shortlist:', shortlist);
@@ -196,34 +141,56 @@ export default class ExternalResourceDirectory {
 
   private query = async (
     apiMap: Record<string, OpenAPI.Document>,
-    providerMap: Record<string, string>,
+    scopes: string[],
     objective: string,
   ): Promise<APIMatch[]> => {
-    await this.logger.info('Search called with objective:', objective);
-    const providers = uniq(Object.values(providerMap));
+    const { shortObjective } = await this.llm.generateStructured({
+      messages: [
+        {
+          content: t(
+            [
+              'My client told me to do this: ',
+              '```{{objective}}```',
+              'Help me summarize the task in a paragarh so that I can create a line item in the invoice',
+              'Rules:',
+              '1. It should be generic enough so that similar tasks can be combined.',
+              '2. It should not have any data specific to the task. Replace the data with their description.',
+            ],
+            { objective },
+          ),
+          role: 'user',
+        },
+      ],
+      model: ChatCompletionModels.trivial,
+      generatorName: 'summary_generator',
+      generatorDescription: 'The summary of the given task',
+      generatorOutputSchema: Zod.object({
+        shortObjective: Zod.string(),
+      }),
+    });
+
+    await this.logger.info('Vector search called:', {
+      shortObjective,
+      scopes,
+    });
 
     const embedding = await this.embeddingFunctions.createEmbeddings([
-      objective,
+      shortObjective,
     ]);
 
     const matches = await this.embeddingFunctions.searchItems(
-      objective,
+      shortObjective,
       embedding[0][1],
       20,
-      providers.length > 1
-        ? {
-            provider: {
-              $in: providers,
-            },
-          }
-        : {
-            provider: {
-              $eq: providers[0],
-            },
-          },
+      {
+        scopes: {
+          $in: scopes,
+        },
+      },
     );
 
     const pathScores: Map<string, number> = new Map();
+    const pathScopeMap = new Map<string, string[]>();
 
     // Iterate over each match
     for (const match of matches) {
@@ -231,10 +198,24 @@ export default class ExternalResourceDirectory {
 
       // Iterate over each path in the match
       for (const path of matchPaths) {
+        const [apiSpecId, urlPath, httpMethod] = path.split('|');
+        const openapi = apiMap[apiSpecId];
+        const oauthSecuritySchemeName = getOauthSecuritySchemeName(openapi);
+        const pathScopes = getOperationScopes(
+          apiSpecId,
+          openapi.paths![urlPath]![httpMethod]!,
+          oauthSecuritySchemeName,
+        );
+        const matchedScopes = scopes.filter((scope) =>
+          pathScopes.includes(scope),
+        );
+        if (!matchedScopes.length) continue;
+
         // Get the current score of the path or default to 0 if it doesn't exist
         const score = pathScores.get(path) ?? 0;
         // Update the score of the path
         pathScores.set(path, score + (1 - (match.distance ?? 0)));
+        pathScopeMap.set(path, matchedScopes);
       }
     }
 
@@ -250,7 +231,7 @@ export default class ExternalResourceDirectory {
 
     return compact(
       matchingPaths.map((path) => {
-        const [apiSpecId, pathName, httpMethod] = path.split('#');
+        const [apiSpecId, pathName, httpMethod] = path.split('|');
         const operationObject =
           apiMap[apiSpecId].paths?.[pathName]?.[httpMethod];
 
@@ -263,12 +244,12 @@ export default class ExternalResourceDirectory {
           path;
 
         return {
-          specId: apiSpecId,
+          apiSpecId,
+          scopes: pathScopeMap.get(path)!,
           httpMethod: httpMethod,
           path: pathName,
           description,
-          provider: providerMap[apiSpecId],
-        } as APIMatch;
+        } satisfies APIMatch;
       }),
     );
   };
@@ -287,12 +268,12 @@ export default class ExternalResourceDirectory {
     }[] = [];
 
     for (const match of matches) {
-      const openapi = apiMap[match.specId];
+      const openapi = apiMap[match.apiSpecId];
       const operationObject = openapi?.paths?.[match.path]?.[match.httpMethod];
       if (!operationObject) continue;
 
       matchDetails.push({
-        provider: match.provider,
+        provider: openapi.info.title,
         httpMethod: match.httpMethod,
         path: match.path,
         description: stripHtml(
@@ -409,128 +390,4 @@ export default class ExternalResourceDirectory {
       },
     };
   }
-}
-
-function addParametersToPathMapping(
-  operationObject: OperationObject,
-  keyPathMap: Map<string, Set<string>>,
-  fullPath: string,
-) {
-  const parameters = operationObject.parameters?.map((p) => $deref(p)) ?? [];
-  for (const parameter of parameters) {
-    const key = compact([parameter.name, parameter.description]).join(': ');
-    addKeyToPathMapping(key, keyPathMap, fullPath);
-  }
-}
-
-function addRequestBodyPropertiesToPathMapping(
-  operationObject: OperationObject,
-  pathMapping: Map<string, Set<string>>,
-  fullPath: string,
-) {
-  const requestBody =
-    'requestBody' in operationObject
-      ? $deref(operationObject.requestBody)
-      : undefined;
-  const defaultContentType = getDefaultContentType(
-    Object.keys(requestBody?.content ?? []),
-  );
-  const requestBodySchema = $deref(
-    requestBody?.content?.[defaultContentType]?.schema,
-  );
-  if (requestBodySchema) {
-    let properties:
-      | OpenAPIV2.SchemaObject['properties']
-      | OpenAPIV3.SchemaObject['properties']
-      | OpenAPIV3_1.SchemaObject['properties'];
-    if (requestBodySchema?.properties) {
-      properties = $deref(requestBodySchema.properties);
-    }
-    if ('items' in requestBodySchema && requestBodySchema.items) {
-      if (Array.isArray(requestBodySchema.items)) {
-        properties ||= $deref(
-          requestBodySchema.items[0] as OpenAPIV3.SchemaObject,
-        ).properties;
-      } else {
-        properties ||= $deref(requestBodySchema.items).properties ?? {};
-      }
-    }
-    properties ||= {};
-    for (const propertyName in properties) {
-      const property = $deref(properties[propertyName]);
-      const key = compact([propertyName, property.description]).join(': ');
-      addKeyToPathMapping(key, pathMapping, fullPath);
-    }
-  }
-}
-
-function addOperationObjectToPathMapping(
-  operationObject: OperationObject,
-  pathMapping: Map<string, Set<string>>,
-  fullPath: string,
-) {
-  const key =
-    operationObject.description ??
-    operationObject.summary ??
-    operationObject.operationId ??
-    fullPath;
-  addKeyToPathMapping(key, pathMapping, fullPath);
-}
-
-function createMetadataMap(
-  trimmedToOriginalKeyMap: Record<string, string>,
-  pathMapping: Map<string, Set<string>>,
-  provider: string,
-): Record<string, InterveneParserItemMetadata> {
-  return Object.fromEntries(
-    Object.entries(trimmedToOriginalKeyMap).map(([trimmedKey, originalKey]) => [
-      trimmedKey,
-      {
-        paths: Array.from(pathMapping.get(originalKey)!),
-        provider,
-        id: originalKey,
-      },
-    ]),
-  );
-}
-
-function createMetadataHashMap(
-  metadataMap: Record<string, InterveneParserItemMetadata>,
-): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(metadataMap).map(([trimmedKey, metadata]) => [
-      trimmedKey,
-      objecthash(metadata),
-    ]),
-  );
-}
-
-function getKeysToEmbed(
-  trimmedToOriginalKeyMap: Record<string, string>,
-  storedEmbeddings: StorableInterveneParserItem[],
-  metadataHashMap: Record<string, string>,
-): string[] {
-  return Object.keys(trimmedToOriginalKeyMap).filter((key) => {
-    if (!key) return false;
-
-    const storedEmbedding = storedEmbeddings.find(
-      (embedding) => embedding.id === key,
-    );
-    if (storedEmbedding) {
-      const hash = metadataHashMap[key];
-      if (storedEmbedding.metadataHash === hash) {
-        return false;
-      }
-    }
-    return true;
-  });
-}
-
-function addKeyToPathMapping(
-  key: string,
-  pathMapping: Map<string, Set<string>>,
-  fullPath: string,
-) {
-  if (!pathMapping.has(key)) pathMapping.set(key, new Set<string>());
-  pathMapping.get(key)?.add(fullPath);
 }

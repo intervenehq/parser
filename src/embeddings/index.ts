@@ -1,10 +1,13 @@
 import { Query } from 'sift';
 import { Simplify } from 'type-fest';
 
+import { OperationPath } from '../agent/external-resource-directory';
+
 export type InterveneParserItemMetadata = {
-  id: string;
-  provider: string;
-  paths: string[];
+  tokens: string;
+  apiSpecId: string;
+  paths: OperationPath[];
+  scopes: string[];
 };
 
 export type InterveneParserItem = {
