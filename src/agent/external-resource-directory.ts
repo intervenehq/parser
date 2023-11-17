@@ -9,6 +9,7 @@ import { objectivePrefix } from '../agent/index';
 import { EmbeddingFunctions, StorableInterveneParserItem } from '../embeddings';
 import { ChatCompletionModels, LLM } from '../llm';
 import { ALPHABET } from '../utils/alphabet';
+import { benchmark } from '../utils/benchmark';
 import Logger from '../utils/logger';
 import { dereferencePath } from '../utils/openapi/dereference-path';
 import {
@@ -144,49 +145,56 @@ export default class ExternalResourceDirectory {
     scopes: string[],
     objective: string,
   ): Promise<APIMatch[]> => {
-    const { shortObjective } = await this.llm.generateStructured({
-      messages: [
-        {
-          content: t(
-            [
-              'My client told me to do this: ',
-              '```{{objective}}```',
-              'Help me summarize the task in a paragarh so that I can create a line item in the invoice',
-              'Rules:',
-              '1. It should be generic enough so that similar tasks can be combined.',
-              '2. It should not have any data specific to the task. Replace the data with their description.',
-            ],
-            { objective },
-          ),
-          role: 'user',
-        },
-      ],
-      model: ChatCompletionModels.trivial,
-      generatorName: 'summary_generator',
-      generatorDescription: 'The summary of the given task',
-      generatorOutputSchema: Zod.object({
-        shortObjective: Zod.string(),
-      }),
-    });
+    const { shortObjective } = await benchmark(
+      'generating short objective',
+      () =>
+        this.llm.generateStructured({
+          messages: [
+            {
+              content: t(
+                [
+                  'My client told me to do this: ',
+                  '```{{objective}}```',
+                  'Help me summarize the task in a paragarh so that I can create a line item in the invoice',
+                  'Rules:',
+                  '1. It should be generic enough so that similar tasks can be combined.',
+                  '2. It should not have any data specific to the task. Replace the data with their description.',
+                ],
+                { objective },
+              ),
+              role: 'user',
+            },
+          ],
+          model: ChatCompletionModels.trivial,
+          generatorName: 'summary_generator',
+          generatorDescription: 'The summary of the given task',
+          generatorOutputSchema: Zod.object({
+            shortObjective: Zod.string(),
+          }),
+        }),
+      this.logger,
+    );
 
-    await this.logger.info('Vector search called:', {
-      shortObjective,
-      scopes,
-    });
+    const embedding = await benchmark(
+      'create embedding for objective',
+      () => this.embeddingFunctions.createEmbeddings([shortObjective]),
+      this.logger,
+    );
 
-    const embedding = await this.embeddingFunctions.createEmbeddings([
-      shortObjective,
-    ]);
-
-    const matches = await this.embeddingFunctions.searchItems(
-      shortObjective,
-      embedding[0][1],
-      20,
-      {
-        scopes: {
-          $in: scopes,
-        },
-      },
+    const matches = await benchmark(
+      'search objective in vector store',
+      () =>
+        this.embeddingFunctions.searchItems(
+          shortObjective,
+          embedding[0][1],
+          20,
+          {
+            scopes: {
+              $in: scopes,
+            },
+          },
+        ),
+      this.logger,
     );
 
     const pathScores: Map<string, number> = new Map();
@@ -310,33 +318,35 @@ export default class ExternalResourceDirectory {
       },
     );
 
-    await this.logger.log('Asking LLMs to shortlist the correct APIs', message);
-
-    const { indexes: shortlistedIndexes } = await this.llm.generateStructured({
-      messages: [
-        {
-          content: message,
-          role: 'user',
-        },
-      ],
-      model: ChatCompletionModels.trivial,
-      generatorName: 'api_shortlist',
-      generatorDescription:
-        'Shortlist APIs that might work out for the objective.',
-      generatorOutputSchema: Zod.object({
-        indexes: Zod.array(
-          Zod.object({
-            index: Zod.enum(
-              ALPHABET.slice(0, matchesStr.length) as [string],
-            ).describe('The index of API in the given list'),
-            reason: Zod.string().describe(
-              'The reasoning for choosing the API, less than 10 words',
+    const { indexes: shortlistedIndexes } = await benchmark(
+      'shortlist APIs that might work out for the objective',
+      () =>
+        this.llm.generateStructured({
+          messages: [
+            {
+              content: message,
+              role: 'user',
+            },
+          ],
+          model: ChatCompletionModels.trivial,
+          generatorName: 'api_shortlist',
+          generatorDescription:
+            'Shortlist APIs that might work out for the objective.',
+          generatorOutputSchema: Zod.object({
+            indexes: Zod.array(
+              Zod.object({
+                index: Zod.enum(
+                  ALPHABET.slice(0, matchesStr.length) as [string],
+                ).describe('The index of API in the given list'),
+                reason: Zod.string().describe(
+                  'The reasoning for choosing the API, less than 10 words',
+                ),
+              }),
             ),
           }),
-        ),
-      }),
-    });
-    await this.logger.log('Shortlisted indexes', shortlistedIndexes);
+        }),
+      this.logger,
+    );
 
     const filteredMatches: APIMatch[] = [];
 
