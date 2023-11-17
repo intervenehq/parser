@@ -1,3 +1,4 @@
+import { reverse } from 'lodash';
 import compact from 'lodash/compact';
 import objecthash from 'object-hash';
 import { OpenAPI, OpenAPIV2 } from 'openapi-types';
@@ -132,9 +133,18 @@ export default class ExternalResourceDirectory {
     objective: string,
     context: JsonObject | null,
   ): Promise<APIMatch[]> => {
-    const matches = await this.query(apiMap, scopes, objective);
+    const [matches, shortObjective] = await this.query(
+      apiMap,
+      scopes,
+      objective,
+    );
     await this.logger.log('Matches:', matches);
-    const shortlist = await this.shortlist(matches, apiMap, context, objective);
+    const shortlist = await this.shortlist(
+      matches,
+      apiMap,
+      context,
+      shortObjective,
+    );
     await this.logger.log('Shortlist:', shortlist);
 
     return shortlist;
@@ -144,8 +154,8 @@ export default class ExternalResourceDirectory {
     apiMap: Record<string, OpenAPI.Document>,
     scopes: string[],
     objective: string,
-  ): Promise<APIMatch[]> => {
-    const { shortObjective } = await benchmark(
+  ) => {
+    const { documentation: shortObjective } = await benchmark(
       'generating short objective',
       () =>
         this.llm.generateStructured({
@@ -153,12 +163,15 @@ export default class ExternalResourceDirectory {
             {
               content: t(
                 [
-                  'My client told me to do this: ',
+                  'I am an engineer and my manager told to create an API that can be used to achieve this:',
                   '```{{objective}}```',
-                  'Help me summarize the task in a paragarh so that I can create a line item in the invoice',
+                  'I have implemented the code and used relevant third party APIs.',
+                  "Your task is to generate the API documentation's description.",
                   'Rules:',
-                  '1. It should be generic enough so that similar tasks can be combined.',
-                  '2. It should not have any data specific to the task. Replace the data with their description.',
+                  '1. It is preferable not to mention third party vendors.',
+                  '2. It should not have fixed values. My boss may have given an example, replace it with the descriptions if required.',
+                  '3. It should atleast be 2 sentences long.',
+                  '4. It needs to be technical.',
                 ],
                 { objective },
               ),
@@ -166,14 +179,16 @@ export default class ExternalResourceDirectory {
             },
           ],
           model: ChatCompletionModels.trivial,
-          generatorName: 'summary_generator',
-          generatorDescription: 'The summary of the given task',
+          generatorName: 'documentation_generator',
+          generatorDescription: 'The generation for the API',
           generatorOutputSchema: Zod.object({
-            shortObjective: Zod.string(),
+            documentation: Zod.string(),
           }),
         }),
       this.logger,
     );
+
+    await this.logger.log('Decoded API documentation:', shortObjective);
 
     const embedding = await benchmark(
       'create embedding for objective',
@@ -182,7 +197,7 @@ export default class ExternalResourceDirectory {
     );
 
     const matches = await benchmark(
-      'search objective in vector store',
+      `search objective in vector store`,
       () =>
         this.embeddingFunctions.searchItems(
           shortObjective,
@@ -237,29 +252,32 @@ export default class ExternalResourceDirectory {
       .map((entry) => entry[0])
       .splice(0, 7) as OperationPath[];
 
-    return compact(
-      matchingPaths.map((path) => {
-        const [apiSpecId, pathName, httpMethod] = path.split('|');
-        const operationObject =
-          apiMap[apiSpecId].paths?.[pathName]?.[httpMethod];
+    return [
+      compact(
+        matchingPaths.map((path) => {
+          const [apiSpecId, pathName, httpMethod] = path.split('|');
+          const operationObject =
+            apiMap[apiSpecId].paths?.[pathName]?.[httpMethod];
 
-        if (!operationObject) return;
+          if (!operationObject) return;
 
-        const description =
-          operationObject.description ??
-          operationObject.summary ??
-          operationObject.operationId ??
-          path;
+          const description =
+            operationObject.description ??
+            operationObject.summary ??
+            operationObject.operationId ??
+            path;
 
-        return {
-          apiSpecId,
-          scopes: pathScopeMap.get(path)!,
-          httpMethod: httpMethod,
-          path: pathName,
-          description,
-        } satisfies APIMatch;
-      }),
-    );
+          return {
+            apiSpecId,
+            scopes: pathScopeMap.get(path)!,
+            httpMethod: httpMethod,
+            path: pathName,
+            description,
+          } satisfies APIMatch;
+        }),
+      ),
+      shortObjective,
+    ] as const;
   };
 
   private shortlist = async (
@@ -293,7 +311,7 @@ export default class ExternalResourceDirectory {
       });
     }
 
-    const matchesStr = matchDetails.map(
+    const matchesStr = reverse(matchDetails).map(
       ({ provider, httpMethod, path, description }) => {
         return `${provider}: ${httpMethod.toUpperCase()} ${path}\n'${description}'`;
       },
@@ -303,22 +321,20 @@ export default class ExternalResourceDirectory {
       [
         objectivePrefix({ objective, context }),
         'Your task is to shortlist APIs that can be used to accomplish the objective',
-        'Here is a list of possible choices for the API call (in randomized order):',
+        'Here is a list of possible choices for the API call:\n',
         '{{#each matchesStr}}',
         '{{getAlphabet @index}}. {{this}}\n',
         '{{/each}}',
-        'Your task is to shortlist at most 5 APIs in descending order of fittingness.',
-        'Rules:',
-        '1. The most probable API should be at the top of the list.',
-        '2. You must choose at least one API.',
-        '3. Provide reasoning for each choice and how it will help with the objective',
+        'Your task is to shortlist at most 3 APIs in descending order of fittingness.',
       ],
       {
         matchesStr,
       },
     );
 
-    const { indexes: shortlistedIndexes } = await benchmark(
+    await this.logger.log('Shortlisting indexes:', message);
+
+    let { indexes: shortlistedIndexes } = await benchmark(
       'shortlist APIs that might work out for the objective',
       () =>
         this.llm.generateStructured({
@@ -338,15 +354,21 @@ export default class ExternalResourceDirectory {
                 index: Zod.enum(
                   ALPHABET.slice(0, matchesStr.length) as [string],
                 ).describe('The index of API in the given list'),
-                reason: Zod.string().describe(
-                  'The reasoning for choosing the API, less than 10 words',
-                ),
+                score: Zod.number()
+                  .describe('How good fit is this API?')
+                  .min(0)
+                  .max(10),
               }),
             ),
           }),
         }),
       this.logger,
     );
+    await this.logger.log(
+      'Shortlisted indexes:',
+      JSON.stringify(shortlistedIndexes),
+    );
+    shortlistedIndexes = shortlistedIndexes.sort((a, b) => b.score - a.score);
 
     const filteredMatches: APIMatch[] = [];
 

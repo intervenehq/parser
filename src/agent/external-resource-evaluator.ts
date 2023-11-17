@@ -31,13 +31,12 @@ export default class ExternalResourceEvaluator {
     const message = t(
       [
         objectivePrefix(params),
-        'I want to check feasibility of the following external resource to achieve the objective:',
+        'I want to check if this API is the right choice for the task:',
         operationPrefix(params, true),
         '{{#if bodySchema}}body schema: {{bodySchema}}{{/if}}',
         '{{#if querySchema}}query params schema: {{querySchema}}{{/if}}',
         '{{#if pathSchema}}path params schema: {{pathSchema}}{{/if}}',
-        'Did I pick an inappropriate external resource for the job?',
-        'The schemas provided are partial. The description provided will not convey full meaning.',
+        'The schemas provided are partial. The description provided may not convey full meaning.',
         'This is preliminary feasibility check, you will have access to more data later - keep it loose',
       ],
       {
@@ -47,79 +46,25 @@ export default class ExternalResourceEvaluator {
       },
     );
 
-    const { is_this_the_right_external_resource, reason } =
-      await this.llm.generateStructured({
-        messages: [
-          {
-            content: message,
-            role: 'user',
-          },
-        ],
-        generatorName: 'did_the_user_pick_inappropriate_external_resource',
-        generatorDescription:
-          'Did the user pick the inappropriate external resource?',
-        generatorOutputSchema: Zod.object({
-          is_this_the_right_external_resource: Zod.boolean().describe(
-            'true if the chosen resource is inappropriate, false if it is appropriate',
-          ),
-          reason: Zod.string()
-            .describe(
-              'reason why the resource is not correct, need to be a valid reason',
-            )
-            .min(10),
-        }),
-      });
-
-    return [!is_this_the_right_external_resource, reason] as const;
-  }
-
-  async filterInputSchemas(
-    params: OperationMetdata & {
-      requestSchema: {
-        body?: JSONSchema7;
-        query?: JSONSchema7;
-        path?: JSONSchema7;
-        required: {
-          body?: JSONSchema7;
-          query?: JSONSchema7;
-          path?: JSONSchema7;
-        };
-      };
-    },
-  ) {
-    const filterPromises = (
-      await Promise.allSettled([
-        await this.filterInputSchema({
-          ...params,
-          requiredInputSchema: params.requestSchema.required.body,
-          inputSchema: params.requestSchema.body,
-        }),
-        await this.filterInputSchema({
-          ...params,
-          requiredInputSchema: params.requestSchema.required.query,
-          inputSchema: params.requestSchema.query,
-        }),
-        await this.filterInputSchema({
-          ...params,
-          requiredInputSchema: params.requestSchema.required.path,
-          inputSchema: params.requestSchema.path,
-        }),
-      ])
-    ).map((result) => {
-      if (result.status === 'rejected')
-        throw `couldnt shortlist input, error ${result.reason}`;
-
-      return result.value;
+    const { is_correct } = await this.llm.generateStructured({
+      messages: [
+        {
+          content: message,
+          role: 'user',
+        },
+      ],
+      model: ChatCompletionModels.trivial,
+      generatorName: 'respond',
+      generatorDescription: 'Did the user pick the right API?',
+      generatorOutputSchema: Zod.object({
+        is_correct: Zod.boolean(),
+      }),
     });
 
-    return {
-      body: filterPromises[0],
-      query: filterPromises[1],
-      path: filterPromises[2],
-    };
+    return is_correct;
   }
 
-  private async filterInputSchema(
+  async filterInputSchema(
     params: OperationMetdata & {
       requiredInputSchema?: JSONSchema7;
       inputSchema?: JSONSchema7;

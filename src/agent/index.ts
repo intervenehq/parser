@@ -20,9 +20,9 @@ export const objectivePrefix = (
 ) =>
   t(
     [
-      'Help me write an API call.',
-      'Objective: ```{{objective}}```.',
-      '{{#if showContext}}Historical context in JSON: ```{{context}}```{{/if}}',
+      'I am a backend engineer. I want to make an API call to achieve the following objective:',
+      '```{{objective}}```.',
+      '{{#if showContext}}Here is some historical context in JSON: ```{{context}}```{{/if}}',
     ],
     {
       ...params,
