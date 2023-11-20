@@ -1,14 +1,16 @@
-import { Query } from 'sift';
+import { BasicValueQuery } from 'sift';
 import { Simplify } from 'type-fest';
-
-import { OperationPath } from '../agent/external-resource-directory';
 
 export type InterveneParserItemMetadata = {
   tokens: string;
   apiSpecId: string;
-  paths: OperationPath[];
-  scopes: string[];
-};
+  paths: string;
+} & Record<string, boolean | number | string>;
+
+export type InterveneParserItemMetadataWhere = Exclude<
+  BasicValueQuery<Omit<InterveneParserItemMetadata, 'paths'>>,
+  RegExp
+>;
 
 export type InterveneParserItem = {
   id: string;
@@ -33,7 +35,7 @@ export type SearchEmbeddingsFunction = (
   input: string,
   embedding: number[],
   limit: number,
-  where: Exclude<Query<Omit<InterveneParserItemMetadata, 'paths'>>, RegExp>,
+  where: InterveneParserItemMetadataWhere,
 ) => Promise<InterveneParserItem[]>;
 
 export type UpsertEmbeddingsFunction = (

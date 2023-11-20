@@ -55,7 +55,9 @@ function deepenSchema(
   return deepenedSchema;
 }
 
-function shallowSchema(schema: JSONSchema7) {
+function shallowSchema(schema: JSONSchema7 | null | undefined) {
+  if (!schema) return {};
+
   const newSchema = cloneDeep(schema);
 
   const omitableProperties: (keyof JSONSchema7)[] = [

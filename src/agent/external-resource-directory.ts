@@ -7,7 +7,12 @@ import { JsonObject } from 'type-fest';
 import Zod from 'zod';
 
 import { objectivePrefix } from '../agent/index';
-import { EmbeddingFunctions, StorableInterveneParserItem } from '../embeddings';
+import {
+  EmbeddingFunctions,
+  InterveneParserItemMetadata,
+  InterveneParserItemMetadataWhere,
+  StorableInterveneParserItem,
+} from '../embeddings';
 import { ChatCompletionModels, LLM } from '../llm';
 import { ALPHABET } from '../utils/alphabet';
 import { benchmark } from '../utils/benchmark';
@@ -67,18 +72,47 @@ export default class ExternalResourceDirectory {
   private async processKeysInBatches(tokenMap: TokenMap) {
     const itemIds = Array.from(tokenMap.keys());
     const batchSize = 1000;
+    const metadataMap = Object.fromEntries(
+      itemIds.map((id) => {
+        const metadata: InterveneParserItemMetadata = {
+          paths: JSON.stringify(Array.from(tokenMap.get(id)!.paths)),
+          apiSpecId: tokenMap.get(id)!.apiSpecId,
+          tokens: tokenMap.get(id)!.tokens,
+        };
+
+        tokenMap.get(id)!.scopes.forEach((scope) => {
+          metadata[scope] = true;
+        });
+
+        return [id, metadata];
+      }),
+    );
+    const metadataHashMap = Object.fromEntries(
+      itemIds.map((id) => [id, objecthash(metadataMap[id])]),
+    );
 
     // Process keys in batches
     for (let i = 0; i < itemIds.length; i += batchSize) {
       const idsBatch = itemIds.slice(i, i + batchSize).filter((key) => !!key);
 
       // Retrieve stored embeddings
-      const storedEmbeddings =
-        await this.embeddingFunctions.retrieveItems(idsBatch);
-      const existingItemIds = storedEmbeddings.map((embedding) => embedding.id);
+      const storedEmbeddings = Object.fromEntries(
+        (await this.embeddingFunctions.retrieveItems(idsBatch)).map((item) => [
+          item.id,
+          item,
+        ]),
+      );
 
       // Determine which keys need to be embedded
-      const idsToEmbed = idsBatch.filter((id) => !existingItemIds.includes(id));
+      const idsToEmbed = idsBatch.filter((id) => {
+        if (!storedEmbeddings[id]) return true;
+
+        if (metadataHashMap[id] !== storedEmbeddings[id].metadataHash) {
+          return true;
+        }
+
+        return false;
+      });
       const tokensToEmbed = idsToEmbed
         .map((id) => tokenMap.get(id)!.tokens)
         .filter((t) => !!t);
@@ -95,12 +129,15 @@ export default class ExternalResourceDirectory {
         const item = tokenMap.get(id)!;
         const embedding = embeddingsMap[item.tokens];
 
-        const metadata = {
-          paths: Array.from(tokenMap.get(id)!.paths),
-          scopes: Array.from(tokenMap.get(id)!.scopes),
+        const metadata: InterveneParserItemMetadata = {
+          paths: JSON.stringify(Array.from(tokenMap.get(id)!.paths)),
           apiSpecId: tokenMap.get(id)!.apiSpecId,
           tokens: item.tokens,
         };
+
+        tokenMap.get(id)!.scopes.forEach((scope) => {
+          metadata[scope] = true;
+        });
 
         embeddingsToStore.push({
           id: id,
@@ -196,6 +233,12 @@ export default class ExternalResourceDirectory {
       this.logger,
     );
 
+    const where: InterveneParserItemMetadataWhere = {
+      $or: scopes.map((scope) => ({
+        [scope]: true,
+      })),
+    };
+
     const matches = await benchmark(
       `search objective in vector store`,
       () =>
@@ -203,11 +246,7 @@ export default class ExternalResourceDirectory {
           shortObjective,
           embedding[0][1],
           20,
-          {
-            scopes: {
-              $in: scopes,
-            },
-          },
+          where,
         ),
       this.logger,
     );
@@ -217,7 +256,7 @@ export default class ExternalResourceDirectory {
 
     // Iterate over each match
     for (const match of matches) {
-      const matchPaths = match.metadata?.paths;
+      const matchPaths = JSON.parse(match.metadata.paths) as OperationPath[];
 
       // Iterate over each path in the match
       for (const path of matchPaths) {

@@ -82,8 +82,8 @@ export default class ContextProcessor {
     const filteredContext: Record<string, JSONSchema7> = {};
 
     for (const key of params.contextShortlist) {
-      let filteredSchema = shallowSchema(params.context[key]);
-      const chunks = chunkSchema(params.context[key], true);
+      let filteredSchema = shallowSchema(params.context?.[key]);
+      const chunks = chunkSchema(params.context?.[key], true);
 
       for (const { schema: chunkSchema, propertyNames } of chunks) {
         if (!propertyNames.length) {
